@@ -20,7 +20,7 @@
  * @author  Bobe <wascripts@phpcodeur.net>
  * @link    http://phpcodeur.net/wascripts/wamailer/
  * @license http://www.gnu.org/copyleft/lesser.html
- * @version $Id: mailer.class.php 61 2005-10-25 20:52:26Z bobe $
+ * @version $Id$
  * 
  * @see RFC 2045 - Multipurpose Internet Mail Extensions (MIME) Part One: Format of Internet Message Bodies
  * @see RFC 2046 - Multipurpose Internet Mail Extensions (MIME) Part Two: Media Types

@@ -20,7 +20,7 @@
  * @author  Bobe <wascripts@phpcodeur.net>
  * @link    http://phpcodeur.net/wascripts/wamailer/
  * @license http://www.gnu.org/copyleft/lesser.html
- * @version $Id: wamailer.class.php 61 2005-10-25 20:52:26Z bobe $
+ * @version $Id$
  */
 
 require dirname(__FILE__) . '/mime.class.php';
