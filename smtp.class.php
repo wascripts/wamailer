@@ -79,7 +79,7 @@ class Mailer_SMTP {
 	private $passwd     = '';
 	
 	public  $timeout    = 3;
-	public  $debug      = true;
+	public  $debug      = false;
 	public  $save_log   = false;
 	public  $filename   = '/var/log/wamailer_smtp.log';
 	private $logstr     = '';
@@ -176,6 +176,7 @@ class Mailer_SMTP {
 	{
 		while( $data = fgets($this->socket, 512) ) {
 			$this->log($data);
+			$this->_responseData = rtrim($data);
 			
 			if( substr($data, 3, 1) == ' ' ) {
 				$this->_responseCode = substr($data, 0, 3);
@@ -296,7 +297,7 @@ class Mailer_SMTP {
 		// Si un point se trouve en début de ligne, on le double pour éviter
 		// que le serveur ne l’interprète comme la fin de l’envoi.
 		//
-		$email = str_replace("\n.", "\n..", $email);
+		$email = str_replace("\r\n.", "\r\n..", $email);
 		
 		//
 		// On indique au serveur que l’on va lui livrer les données
@@ -383,7 +384,7 @@ class Mailer_SMTP {
 		}
 		
 		if( $this->save_log ) {
-			if( $fw = fopen($this->filelog, 'w') ) {
+			if( $fw = fopen($this->filename, 'w') ) {
 				$logstr  = 'Connexion au serveur ' . $this->server . ' :: ' . date('d/M/Y H:i:s O');
 				$logstr .= $this->eol . '--------------------' . $this->eol;
 				$logstr .= $this->logstr . $this->eol . $this->eol;

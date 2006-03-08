@@ -82,7 +82,7 @@ class Mime {
 			
 			while( $pos < $strlen ) {
 				$tmplen = $maxlen;
-				$i = ($pos + $tmplen);
+				$i = min(($pos + $tmplen), $strlen);
 				
 				// Si une coupure est nécessaire, on fait de la place pour
 				// le signe égal, "soft break"
@@ -194,8 +194,8 @@ class Mime {
 					 * 
 					 * @see RFC 2047#5
 					 */
-					for( $i = ($tmplen-1), $c = 1; $i > 0; $i--, $c++ ) {
-						$d = ord($value{$i});
+					for( $i = min(($pos + $tmplen), $strlen), $c = 1; $i > $pos; $i--, $c++ ) {
+						$d = ord($value{$i-1});
 						
 						reset(self::$_utf8test);
 						for( $m = 1; $m <= 6; $m++ ) {
@@ -709,13 +709,14 @@ class Mime_Header {
 			throw new Exception("'$name' is not a valid header name!");
 		}
 		
+		$name  = str_replace(' ', '-', ucwords(str_replace('-', ' ', strtolower($name))));
+		
 		/**
 		 * Le contenu de l’en-tête ne doit contenir aucun retour chariot
 		 * ou saut de ligne
 		 *
 		 * @see RFC 2822#2.2
 		 */
-		$name  = str_replace(' ', '-', ucwords(str_replace('-', ' ', $name)));
 		$value = preg_replace('/\s+/S', ' ', trim($value));
 		
 		if( ($name == 'Content-Type' || $name == 'Content-Disposition') && strpos($value, ';') ) {
@@ -745,7 +746,7 @@ class Mime_Header {
 	 */
 	public function checkName($name)
 	{
-		return (bool) !preg_match('/[^\x21-\x39\x3B-\x7E]/S', $name);
+		return (bool) preg_match('/^[\x21-\x39\x3B-\x7E]+$/', $name);
 	}
 	
 	/**

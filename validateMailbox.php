@@ -110,9 +110,6 @@ function validateMailbox($emailList, &$return_errors = null)
 		array_multisort($mxhosts);
 		
 		$smtp = new Mailer_SMTP();
-		// temporaire
-		$smtp->save_log = true;
-		$smtp->filename = '../../misc/log_smtp.txt';
 		
 		foreach( $mxhosts as $record ) {
 			try {
