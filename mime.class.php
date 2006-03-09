@@ -122,10 +122,10 @@ class Mime {
 	 */
 	static function encodeHeader($name, $value, $charset, $token = 'text')
 	{
-		$maxlen = 76;
-		$sep = "\r\n\t";
-		
 		if( preg_match('/[\x00-\x1F\x7F-\xFF]/', $value) ) {
+			
+			$maxlen = 76;
+			$sep = "\r\n\t";
 			
 			switch( $token ) {
 				case 'comment':
@@ -264,14 +264,23 @@ class Mime {
 	 */
 	static function getType($filename)
 	{
+		if( !is_readable($filename) ) {
+			throw new Exception("Cannot read file '$filename'");
+		}
+		
 		if( function_exists('mime_content_type') ) {
 			$type = mime_content_type($filename);
 		}
 		else if( function_exists('exec') ) {
-			$type = exec(sprintf('file -bi %s', escapeshellarg($filename)));
+			$type = exec(sprintf('file -bi %s', escapeshellarg($filename)), $null, $result);
 			
-/*			if( strpos($type, ';') ) {
-				list($type) = explode(';', $type);
+			if( $result !== 0 || !strpos($type, '/') ) {
+				$type = '';
+			}
+/*			else {
+				if( strpos($type, ';') ) {
+					list($type) = explode(';', $type);
+				}
 			}*/
 		}
 		
@@ -534,31 +543,6 @@ class Mime_Headers implements Iterator {
 	}
 	
 	/**
-	 * Complète un en-tête existant
-	 * 
-	 * @param string $name   Nom de l’en-tête
-	 * @param string $value  Valeur de l’en-tête
-	 * 
-	 * @access public
-	 * @return void
-	 */
-	public function append($name, $value)
-	{
-		$header = $this->headers[$name];
-		
-		if( !is_null($header) ) {
-			if( is_array($header) ) {
-				$header = array_pop($header);
-			}
-			
-			$header->value .= $value;
-		}
-		else {
-			throw new Exception("$name header doesn't exists!");
-		}
-	}
-	
-	/**
 	 * Retourne l’objet Mime_Header ou un tableau d’objets correspondant au nom d’en-tête donné
 	 * 
 	 * @param string $name  Nom de l’en-tête
@@ -569,7 +553,7 @@ class Mime_Headers implements Iterator {
 	public function get($name)
 	{
 		if( isset($this->headers[$name])
-			&& (is_array($this->headers[$name]) || !empty($this->headers[$name]->value)) )
+			&& (is_array($this->headers[$name]) || $this->headers[$name]->value != '') )
 		{
 			return $this->headers[$name];
 		}
@@ -643,7 +627,7 @@ class Mime_Headers implements Iterator {
 			}
 			
 			foreach( $headers as $header ) {
-				if( !empty($header->value) ) {
+				if( $header->value != '' ) {
 					$str .= $header->__toString();
 					$str .= "\r\n";
 				}
@@ -674,17 +658,17 @@ class Mime_Header {
 	 * Nom de l’en-tête
 	 * 
 	 * @var string
-	 * @access public
+	 * @access private
 	 */
-	public $name    = null;
+	private $_name;
 	
 	/**
 	 * Valeur de l’en-tête
 	 * 
 	 * @var string
-	 * @access public
+	 * @access private
 	 */
-	public $value   = null;
+	private $_value;
 	
 	/**
 	 * Liste des paramètres associés à la valeur de cet en-tête
@@ -709,7 +693,7 @@ class Mime_Header {
 			throw new Exception("'$name' is not a valid header name!");
 		}
 		
-		$name  = str_replace(' ', '-', ucwords(str_replace('-', ' ', strtolower($name))));
+		$name  = str_replace(' ', '-', ucwords(str_replace('-', ' ', $name)));
 		
 		/**
 		 * Le contenu de l’en-tête ne doit contenir aucun retour chariot
@@ -729,8 +713,8 @@ class Mime_Header {
 			}
 		}
 		
-		$this->name  = $name;
-		$this->value = $value;
+		$this->_name  = $name;
+		$this->_value = $value;
 	}
 	
 	/**
@@ -775,6 +759,19 @@ class Mime_Header {
 	}
 	
 	/**
+	 * Complète la valeur de l’en-tête
+	 * 
+	 * @param string $str
+	 * 
+	 * @access public
+	 * @return void
+	 */
+	public function append($str)
+	{
+		$this->_value .= $str;
+	}
+	
+	/**
 	 * Ajoute un paramètre à l’en-tête
 	 * 
 	 * @param string $name   Nom du paramètre
@@ -808,7 +805,7 @@ class Mime_Header {
 	 */
 	public function __toString()
 	{
-		$value = $this->value;
+		$value = $this->_value;
 		
 		foreach( $this->params as $pName => $pValue ) {
 			if( empty($pValue) ) {
@@ -834,7 +831,21 @@ class Mime_Header {
 			$value .= sprintf('; %s=%s', $pName, $pValue);
 		}
 		
-		return wordwrap(sprintf('%s: %s', $this->name, $value), 77, "\r\n\t");
+		return wordwrap(sprintf('%s: %s', $this->_name, $value), 77, "\r\n\t");
+	}
+	
+	public function __get($name)
+	{
+		$value = null;
+		
+		switch( $name ) {
+			case 'name':
+			case 'value':
+				$value = $this->{'_'.$name};
+				break;
+		}
+		
+		return $value;
 	}
 }
 

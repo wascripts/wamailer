@@ -54,6 +54,8 @@ unset($hostname);
  * - Envoi avec SMTP
  * - parsing des emails sauvegardés
  * - ajout méthode pour remplissage de Mime_Part::body ?
+ * - Ajouter une méthode pour récupération contenu email, en-têtes, etc plutôt
+ *   qu’appeller directement __toString() ?
  * 
  * Les sources qui m’ont bien aidées : 
  * 
@@ -137,14 +139,14 @@ class Mailer {
 	{
 		$email->headers->set('X-Mailer', sprintf('Wamailer/%.1f (http://phpcodeur.net/)', self::VERSION));
 		if( self::$sendmail_mode == true ) {
-			$email->headers->append('X-Mailer', ' (sendmail mode)');
+			$email->headers->get('X-Mailer')->append(' (sendmail mode)');
 		}
 		else if( self::$smtp_mode == true ) {
 			if( !class_exists('Mailer_SMTP') ) {
 				require dirname(__FILE__) . '/smtp.class.php';
 			}
 			
-			$email->headers->append('X-Mailer', ' (SMTP mode)');
+			$email->headers->get('X-Mailer')->append(' (SMTP mode)');
 		}
 		
 		$rPath = $email->headers->get('Return-Path');
@@ -160,8 +162,6 @@ class Mailer {
 			}
 		}
 		
-		//$email = clone $email;
-		
 		if( self::$sendmail_mode == false ) {
 			$subject = $email->headers->get('Subject');
 			$recipients = $email->headers->get('To');
@@ -169,18 +169,14 @@ class Mailer {
 			list($headers, $message) = explode("\r\n\r\n", $email->__toString(), 2);
 			
 			if( !is_null($subject) ) {
-				$subject = $subject->value;
-				$headers = preg_replace('/(?<=\n)Subject: (.+?)\r\n(?!\t|\x20)/s', '', $headers);
-				//$email->headers->remove('Subject');
+				$subject = $subject->__toString();
+				$headers = str_replace(sprintf("Subject: %s\r\n", $subject), '', $headers);
 			}
 			
 			if( !is_null($recipients) ) {
-				$recipients = $recipients->value;
-				$headers = preg_replace('/(?<=\n)To: (.+?)\r\n(?!\t|\x20)/s', '', $headers);
-				//$email->headers->remove('To');
+				$recipients = $recipients->__toString();
+				$headers = str_replace(sprintf("To: %s\r\n", $recipients), '', $headers);
 			}
-			
-			//list($headers, $message) = explode("\r\n\r\n", $email->__toString(), 2);
 			
 			if( strncasecmp(PHP_OS, 'Win', 3) != 0 ) {
 				foreach( array('recipients', 'subject', 'headers', 'message') as $name ) {
@@ -198,7 +194,7 @@ class Mailer {
 			}
 		}
 		else {
-			$result = self::sendmail($email->__toString(), array(), $rPath, self::$sendmail_cmd);
+			$result = self::sendmail($email->__toString(), array(), $rPath);
 		}
 		
 		return $result;
@@ -378,6 +374,12 @@ class Email {
 	private $hasVisibleRecipient = false;
 	
 	/**
+	 * @var string
+	 * @access private
+	 */
+	private $_compiledBody = '';
+	
+	/**
 	 * Constructeur de classe
 	 * 
 	 * @access public
@@ -422,10 +424,10 @@ class Email {
 		
 		$email = new Email();
 		
-		$headers = explode("\r\n", $headers);
+		$headers = preg_split("\r\n(?![\x09\x20])", $headers);
 		foreach( $headers as $header ) {
-			if( strpos($header, ':') ) {
-				list($name, $value) = explode(':', $header);
+			if( strpos($header, ':') ) {// Pour esquiver l’éventuelle ligne From - ...
+				list($name, $value) = explode(':', $header, 2);
 				$email->headers->add($name, $value);
 			}
 		}
@@ -551,7 +553,7 @@ class Email {
 			}
 		}
 		else {
-			$this->headers->append($header, ', ' . $email);
+			$this->headers->get($header)->append(', ' . $email);
 		}
 	}
 	
@@ -667,6 +669,7 @@ class Email {
 		$this->_textPart->headers->set('Content-Type', 'text/plain');
 		$this->_textPart->headers->set('Content-Transfer-Encoding', '8bit');
 		$this->_textPart->headers->get('Content-Type')->param('charset', $charset);
+		$this->_compiledBody = '';
 		
 		return $this->_textPart;
 	}
@@ -688,6 +691,7 @@ class Email {
 		$this->_htmlPart->headers->set('Content-Type', 'text/html');
 		$this->_htmlPart->headers->set('Content-Transfer-Encoding', '8bit');
 		$this->_htmlPart->headers->get('Content-Type')->param('charset', $charset);
+		$this->_compiledBody = '';
 		
 		return $this->_htmlPart;
 	}
@@ -745,7 +749,9 @@ class Email {
 		$attach->headers->get('Content-Disposition')->param('filename', $name);
 		$attach->headers->get('Content-Disposition')->param('size', strlen($data));
 		$attach->headers->set('Content-Transfer-Encoding', 'base64');
+		
 		array_push($this->_attachParts, $attach);
+		$this->_compiledBody = '';
 		
 		return $attach;
 	}
@@ -759,13 +765,19 @@ class Email {
 	public function __toString()
 	{
 		$this->headers->set('Date', date(DATE_RFC2822));
-		$this->headers->set('Message-ID', sprintf('<%s@%s>', md5(microtime() . rand()), MAILER_HOSTNAME));
+		$this->headers->set('Message-ID', sprintf('<%s@%s>', md5(microtime().rand()), MAILER_HOSTNAME));
 		
 		if( !$this->hasVisibleRecipient ) {
 			$this->headers->set('To', 'Undisclosed-recipients:;');
 		}
 		
+		$headers = $this->headers->__toString();
+		if( !empty($this->_compiledBody) ) {
+			return $headers . $this->_compiledBody;
+		}
+		
 		$rootPart = null;
+		$attachParts = $this->_attachParts;
 		
 		if( !is_null($this->_htmlPart) ) {
 			$rootPart = $this->_htmlPart;
@@ -775,23 +787,28 @@ class Email {
 				$rootPart->headers->set('Content-Type', 'multipart/alternative');
 			}
 			
-			$embedList = array();
-			foreach( $this->_attachParts as &$attach ) {
-				$name = $attach->headers->get('Content-Type')->param('name');
-				$regexp = '/<([^>]+)=(["\']?)cid:' . preg_quote($name, '/') . '\\2([^>]*)>/S';
-				
-				if( preg_match($regexp, $this->_htmlPart->body) ) {
+			$embedParts = array();
+			foreach( $attachParts as &$attach ) {
+				if( $attach->headers->get('Content-ID') == null ) {
+					$name = $attach->headers->get('Content-Type')->param('name');
+					$regexp = '/<([^>]+=\s*)(["\'])cid:' . preg_quote($name, '/') . '\\2([^>]*)>/S';
+					
+					if( !preg_match($regexp, $this->_htmlPart->body) ) {
+						continue;
+					}
+					
 					$cid = md5(microtime()) . '@' . MAILER_HOSTNAME;
 					$this->_htmlPart->body = preg_replace($regexp,
-						'<\\1=\\2cid:' . $cid . '\\2\\3>', $this->_htmlPart->body);
-					array_push($embedList, $attach);
+						'<\\1\\2cid:' . $cid . '\\2\\3>', $this->_htmlPart->body);
 					$attach->headers->set('Content-ID', "<$cid>");
-					$attach = null;
 				}
+				
+				array_push($embedParts, $attach);
+				$attach = null;
 			}
 			
-			if( count($embedList) > 0 ) {
-				$embedPart = new Mime_Part($embedList);
+			if( count($embedParts) > 0 ) {
+				$embedPart = new Mime_Part($embedParts);
 				$embedPart->headers->set('Content-Type', 'multipart/related');
 				$embedPart->headers->get('Content-Type')->param('type',
 					$rootPart->headers->get('Content-Type')->value);
@@ -803,38 +820,36 @@ class Email {
 			$rootPart = $this->_textPart;
 		}
 		
-		$this->_attachParts = array_filter($this->_attachParts,
+		$attachParts = array_filter($attachParts,
 			create_function('$var', 'return !is_null($var);'));
 		
-		if( count($this->_attachParts) > 0 ) {
-			$mixedPart = new Mime_Part($this->_attachParts);
+		if( count($attachParts) > 0 ) {
+			$mixedPart = new Mime_Part($attachParts);
 			$mixedPart->headers->set('Content-Type', 'multipart/mixed');
 			
 			if( !is_null($rootPart) ) {
 				array_unshift($mixedPart->body, $rootPart);
 			}
-			else if( count($this->_attachParts) == 1 ) {
-				$mixedPart = $this->_attachParts[0];
+			else if( count($attachParts) == 1 ) {
+				$mixedPart = $attachParts[0];
 			}
 			
 			$rootPart = $mixedPart;
 		}
 		
-		$email = $this->headers->__toString();
-		
 		//
 		// Le corps d’un email est optionnel (cf. RFC 2822#3.5)
 		//
 		if( !is_null($rootPart) ) {
-			$email .= $rootPart->__toString();
+			$this->_compiledBody = $rootPart->__toString();
 			
 			if( strncasecmp($rootPart->headers->get('Content-Type')->value, 'multipart', 9) == 0 ) {
-				$email = preg_replace("/\r\n\r\n/",
-					"\r\n\r\nThis is a multi-part message in MIME format.\r\n\r\n", $email, 1);
+				$this->_compiledBody = preg_replace("/\r\n\r\n/",
+					"\r\n\r\nThis is a multi-part message in MIME format.\r\n\r\n", $this->_compiledBody, 1);
 			}
 		}
 		
-		return $email;
+		return $headers . $this->_compiledBody;
 	}
 	
 	private function __set($name, $value)
