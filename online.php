@@ -2,7 +2,7 @@
 
 function mail($recipients, $subject, $message, $headers)
 {
-	$pattern = '(.*<)?([^@]+@[^>]+)(?(1)>)(\r\n|$)';
+	$pattern = '(.*<)?([-!#$%&\'*+\/0-9=?a-z^_`{|}~.]+)@[-a-z0-9.]+(?(1)>)(\\r\\n|$)';
 	
 	if( !preg_match("/From: $pattern/Ui", $headers, $match) ) {
 		throw new Exception("Mailer::send() : from address needed!");

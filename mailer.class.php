@@ -173,15 +173,12 @@ class Mailer {
 		
 		$rPath = $email->headers->get('Return-Path');
 		
-		if( is_null($rPath) ) {
-			$rPath = ini_get('sendmail_from');
-			
-			if( empty($rPath) ) {
-				$rPath = 'postmaster@' . MAILER_HOSTNAME;
-			}
-		}
-		else {
+		if( !is_null($rPath) ) {
 			$rPath = trim($rPath->value, '<>');
+			
+			if( !PHP_USE_SENDMAIL ) {
+				ini_set('sendmail_from', $rPath);
+			}
 		}
 		
 		if( self::$sendmail_mode == false ) {
@@ -248,7 +245,7 @@ class Mailer {
 				}
 			}
 			
-			if( ini_get('safe_mode') == false ) {
+			if( ini_get('safe_mode') == false && !is_null($rPath) ) {
 				$result = mail($recipients, $subject, $message, $headers, '-f' . $rPath);
 			}
 			else {
@@ -257,6 +254,10 @@ class Mailer {
 		}
 		else {
 			$result = self::sendmail($email->__toString(), array(), $rPath);
+		}
+		
+		if( !PHP_USE_SENDMAIL ) {
+			ini_restore('sendmail_from');
 		}
 		
 		return $result;
@@ -314,18 +315,21 @@ class Mailer {
 	/**
 	 * Envoi via la classe smtp
 	 * 
-	 * @param string $address  Adresses des destinataires
-	 * @param string $message  Corps de l'email
-	 * @param string $headers  Entêtes de l'email
-	 * @param string $rPath    Adresse d'envoi (définit le return-path)
+	 * @param string $email       Email à envoyer
+	 * @param string $recipients  Adresses des destinataires
+	 * @param string $rPath       Adresse d’envoi (définit le return-path)
 	 * 
-	 * @access private
+	 * @access public
 	 * @return boolean
 	 */
-	static function smtpmail($email, $recipients, $rPath)
+	static function smtpmail($email, $recipients, $rPath = null)
 	{
 		if( !class_exists('Mailer_SMTP') ) {
 			require dirname(__FILE__) . '/smtp.class.php';
+		}
+		
+		if( is_null($rPath) ) {
+			$rPath = ini_get('sendmail_from');
 		}
 		
 		// smtp::isConnected()
@@ -430,12 +434,6 @@ class Email {
 	private $_attachParts = array();
 	
 	/**
-	 * @var boolean
-	 * @access private
-	 */
-	private $hasVisibleRecipient = false;
-	
-	/**
 	 * @var string
 	 * @access private
 	 */
@@ -453,15 +451,14 @@ class Email {
 			'Return-Path' => '',
 			'Date' => '',
 			'From' => '',
-			'Subject' => '',
-			'X-Sender' => '',
+			'Sender' => '',
+			'Reply-To' => '',
 			'To' => '',
 			'Cc' => '',
 			'Bcc' => '',
-			'Reply-To' => '',
-			'X-Priority' => '',
+			'Subject' => '',
 			'Message-ID' => '',
-			'MIME-Version' => '1.0'
+			'MIME-Version' => ''
 		));
 		
 		if( !is_null($charset) ) {
@@ -469,24 +466,35 @@ class Email {
 		}
 	}
 	
-/**
+	/**
 	 * Charge un email à partir d’un fichier mail
 	 * 
-	 * @param string $filename
+	 * @param string  $filename
+	 * @param boolean $fullParse
 	 * 
 	 * @access public
-	 * @return void
+	 * @return mixed
 	 */
-	public function load($filename)
+	public function load($filename, $fullParse = false)
 	{
-		throw new Exception("This feature is not yet implemented!");
+		if( !is_readable($filename) ) {
+			throw new Exception("Cannot read file '$filename'");
+		}
 		
-/*		$input = preg_replace('/\r\n?|\n/', "\r\n", $input);
-		list($headers, $body) = explode("\r\n\r\n", $input, 2);
+		$input = file_get_contents($filename);
+		$input = preg_replace('/\r\n?|\n/', "\r\n", $input);
+		list($headers, $message) = explode("\r\n\r\n", $input, 2);
 		
-		$email = new Email();
+		if( !isset($this) || !($this instanceof Email) ) {
+			$email = new Email();
+			$returnBool = false;
+		}
+		else {
+			$email = $this;
+			$returnBool = true;
+		}
 		
-		$headers = preg_split("\r\n(?![\x09\x20])", $headers);
+		$headers = preg_split("/\r\n(?![\x09\x20])/", $headers);
 		foreach( $headers as $header ) {
 			if( strpos($header, ':') ) {// Pour esquiver l’éventuelle ligne From - ...
 				list($name, $value) = explode(':', $header, 2);
@@ -494,28 +502,48 @@ class Email {
 			}
 		}
 		
-		$contentType = $email->headers->get('Content-Type');
-		$boundary = $contentType->param('boundary');
-		$charset  = $contentType->param('charset');
-		
-		if( !is_null($contentType) && strncasecmp($contentType->value, 'multipart', 9) == 0 ) {
-			if( is_null($boundary) ) {
-				throw new Exception("Bad mime part (missed boundary");
+/*		if( $fullParse ) {
+			$sender = $email->headers->get('Return-Path');
+			if( !is_null($sender) ) {
+				$email->sender = trim($sender->value, '<>');
 			}
 			
+			// @todo
+			// Récupération charset "global"
+			// + structure, si compatible
+			// + attention, headers du premier mime_part se trouvent dans
+			// le Mime_Headers de l’objet Email
 			
+			$contentType = $email->headers->get('Content-Type');
+			$boundary = $contentType->param('boundary');
+			$charset  = $contentType->param('charset');
+			
+			if( !is_null($contentType) && strncasecmp($contentType->value, 'multipart', 9) == 0 ) {
+				if( is_null($boundary) ) {
+					throw new Exception("Bad mime part (missed boundary)");
+				}
+				
+				
+			}
+			else {
+				switch( $contentType->value ) {
+					case 'text/plain':
+						$email->setTextBody($message, $charset);
+						break;
+					case 'text/html':
+						$email->setHTMLBody($message, $charset);
+						break;
+					default:
+						// C'est donc un fichier attaché seul
+						break;
+				}
+			}
 		}
-		else {
-			
-			switch( $contentType->value ) {
-				case 'text/plain':
-					$email->setTextBody($body, $charset);
-					break;
-				case 'text/html':
-					$email->setHTMLBody($body, $charset);
-					break;
-			}
-		}*/
+		else {*/
+			$email->_compiledBody = "\r\n".$message;
+//		}
+		
+		return $returnBool ? true : $email;
 	}
 	
 	/**
@@ -552,7 +580,6 @@ class Email {
 		}
 		
 		$this->headers->set('From', $email);
-		$this->setReturnPath();
 	}
 	
 	/**
@@ -609,10 +636,6 @@ class Email {
 		
 		if( is_null($this->headers->get($header)) ) {
 			$this->headers->set($header, $email);
-			
-			if( $header != 'Bcc' ) {
-				$this->hasVisibleRecipient = true;
-			}
 		}
 		else {
 			$this->headers->get($header)->append(', ' . $email);
@@ -827,9 +850,10 @@ class Email {
 	public function __toString()
 	{
 		$this->headers->set('Date', date(DATE_RFC2822));
+		$this->headers->set('MIME-Version', '1.0');
 		$this->headers->set('Message-ID', sprintf('<%s@%s>', md5(microtime().rand()), MAILER_HOSTNAME));
 		
-		if( !$this->hasVisibleRecipient ) {
+		if( $this->headers->get('To') == null && $this->headers->get('Cc') == null ) {
 			$this->headers->set('To', 'Undisclosed-recipients:;');
 		}
 		
