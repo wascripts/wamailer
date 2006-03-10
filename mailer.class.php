@@ -47,6 +47,10 @@ else if( !($hostname = @php_uname('n')) ) {
 define('MAILER_HOSTNAME', $hostname);
 unset($hostname);
 
+define('PHP_USE_SENDMAIL',
+	(strncasecmp(PHP_OS, 'Win', 3) != 0 || ini_get('sendmail_path') != '')
+		? true : false);
+
 /**
  * Classe d’envois d’emails
  * 
@@ -122,8 +126,26 @@ class Mailer {
 	 */
 	static function checkMailSyntax($email)
 	{
-		return (bool) preg_match('/^((?(?<!^)\.)[-!#$%&\'*+\/0-9=?a-z^_`{|}~]+)+@'
-			. '((?(?<!@)\.)[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?)+$/i', $email);
+		return (bool) preg_match('/^(?:(?(?<!^)\.)[-!#$%&\'*+\/0-9=?a-z^_`{|}~]+)+@'
+			. '(?:(?(?<!@)\.)[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?)+$/i', $email);
+	}
+	
+	/**
+	 * Nettoie la liste des adresses destinataires pour supprimer toute
+	 * personnalisation ('My name' <my@address.tld>)
+	 * 
+	 * @param string $addressList
+	 * 
+	 * @static
+	 * @access public
+	 * @return string
+	 */
+	static function clearAddressList($addressList)
+	{
+		preg_match_all('/(?<=^|[\s,<])[-!#$%&\'*+\/0-9=?a-z^_`{|}~.]+@[-a-z0-9.]+(?=[\s,>]|$)/Si',
+			$addressList, $matches);
+		
+		return implode(', ', $matches[0]);
 	}
 	
 	/**
@@ -151,15 +173,15 @@ class Mailer {
 		
 		$rPath = $email->headers->get('Return-Path');
 		
-		if( !is_null($rPath) ) {
-			$rPath = trim($rPath->value, '<>');
-		}
-		else {
+		if( is_null($rPath) ) {
 			$rPath = ini_get('sendmail_from');
 			
 			if( empty($rPath) ) {
 				$rPath = 'postmaster@' . MAILER_HOSTNAME;
 			}
+		}
+		else {
+			$rPath = trim($rPath->value, '<>');
 		}
 		
 		if( self::$sendmail_mode == false ) {
@@ -170,19 +192,59 @@ class Mailer {
 			
 			if( !is_null($subject) ) {
 				$subject = $subject->__toString();
-				$headers = str_replace(sprintf("Subject: %s\r\n", $subject), '', $headers);
+				$headers = str_replace($subject."\r\n", '', $headers);
+				$subject = substr($subject, 9);// on skip le nom de l’en-tête
 			}
 			
 			if( !is_null($recipients) ) {
 				$recipients = $recipients->__toString();
-				$headers = str_replace(sprintf("To: %s\r\n", $recipients), '', $headers);
+				
+				if( PHP_USE_SENDMAIL ) {
+					/**
+					 * Sendmail parse les en-têtes To, Cc et Bcc s’ils sont
+					 * présents pour récupérer la liste des adresses destinataire.
+					 * On passe déjà la liste des destinataires principaux (To)
+					 * en argument de la fonction mail(), donc on supprime l’en-tête To
+					 */
+					$headers = str_replace($recipients."\r\n", '', $headers);
+					$recipients = substr($recipients, 4);// on skip le nom de l’en-tête
+				}
+				else {
+					/**
+					 * La fonction mail() ouvre un socket vers un serveur SMTP.
+					 * On peut laisser l’en-tête To pour la personnalisation.
+					 * Il faut par contre passer une liste d’adresses débarassée
+					 * de cette personnalisation en argument de la fonction mail()
+					 * sous peine d’obtenir une erreur.
+					 */
+					$recipients = self::clearAddressList($recipients);
+				}
 			}
 			
-			if( strncasecmp(PHP_OS, 'Win', 3) != 0 ) {
-				foreach( array('recipients', 'subject', 'headers', 'message') as $name ) {
-					if( !is_null($$name) ) {
-						$$name = str_replace("\r\n", "\n", $$name);
-					}
+			if( PHP_USE_SENDMAIL ) {
+				/**
+				 * On ne réalise pas l’opération sur subject et recipients
+				 * car la fonction mail() ne laisse passer les long en-têtes
+				 * que si les "pliures" sont séparées par \r\n<LWS>
+				 * 
+				 * @see SKIP_LONG_HEADER_SEP routine in
+				 *   http://cvs.php.net/php-src/ext/standard/mail.c
+				 */
+				$headers = str_replace("\r\n", "\n", $headers);
+				$message = str_replace("\r\n", "\n", $message);
+			}
+			else {
+				/**
+				 * La fonction mail() va parser elle-même les en-têtes Cc et Bcc
+				 * pour passer les adresses destinataires au serveur SMTP.
+				 * Il est donc indispensable de nettoyer l’en-tête Cc de toute
+				 * personnalisation sous peine d’obtenir une erreur.
+				 */
+				$header_cc = $email->headers->get('Cc');
+				if( !is_null($header_cc) ) {
+					$header_cc = $header_cc->__toString();
+					$new_header_cc = new Mime_Header('Cc', self::clearAddressList($header_cc));
+					$headers = str_replace($header_cc, $new_header_cc->__toString(), $headers);
 				}
 			}
 			
@@ -407,7 +469,7 @@ class Email {
 		}
 	}
 	
-	/**
+/**
 	 * Charge un email à partir d’un fichier mail
 	 * 
 	 * @param string $filename
