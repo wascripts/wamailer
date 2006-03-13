@@ -44,12 +44,10 @@ else if( !($hostname = @php_uname('n')) ) {
 	$hostname = 'localhost';
 }
 
-define('MAILER_HOSTNAME', $hostname);
+define('MAILER_HOSTNAME',  $hostname);
+define('MAILER_MIME_EOL',  (strncasecmp(PHP_OS, 'Win', 3) != 0) ? "\n" : "\r\n");
+define('PHP_USE_SENDMAIL', (ini_get('sendmail_path') != '') ? true : false);
 unset($hostname);
-
-define('PHP_USE_SENDMAIL',
-	(strncasecmp(PHP_OS, 'Win', 3) != 0 || ini_get('sendmail_path') != '')
-		? true : false);
 
 /**
  * Classe d’envois d’emails
@@ -160,8 +158,15 @@ class Mailer {
 	static function send(Email $email)
 	{
 		$email->headers->set('X-Mailer', sprintf('Wamailer/%.1f (http://phpcodeur.net/)', self::VERSION));
+		
+		$rPath = $email->headers->get('Return-Path');
+		if( !is_null($rPath) ) {
+			$rPath = trim($rPath->value, '<>');
+		}
+		
 		if( self::$sendmail_mode == true ) {
 			$email->headers->get('X-Mailer')->append(' (sendmail mode)');
+			$result = self::sendmail($email->__toString(), null, $rPath);
 		}
 		else if( self::$smtp_mode == true ) {
 			if( !class_exists('Mailer_SMTP') ) {
@@ -169,19 +174,13 @@ class Mailer {
 			}
 			
 			$email->headers->get('X-Mailer')->append(' (SMTP mode)');
-		}
-		
-		$rPath = $email->headers->get('Return-Path');
-		
-		if( !is_null($rPath) ) {
-			$rPath = trim($rPath->value, '<>');
 			
-			if( !PHP_USE_SENDMAIL ) {
-				ini_set('sendmail_from', $rPath);
-			}
+			// @todo
+			// Récupérer adresses To, Cc et Bcc dans $recipients puis supprimer en-tête bcc
+			
+			$result = false;//self::smtpmail($email->__toString(), $recipients, $rPath);
 		}
-		
-		if( self::$sendmail_mode == false ) {
+		else {
 			$subject = $email->headers->get('Subject');
 			$recipients = $email->headers->get('To');
 			
@@ -222,15 +221,25 @@ class Mailer {
 				/**
 				 * On ne réalise pas l’opération sur subject et recipients
 				 * car la fonction mail() ne laisse passer les long en-têtes
-				 * que si les "pliures" sont séparées par \r\n<LWS>
+				 * que si les plis sont séparés par \r\n<LWS>
 				 * 
 				 * @see SKIP_LONG_HEADER_SEP routine in
 				 *   http://cvs.php.net/php-src/ext/standard/mail.c
 				 */
-				$headers = str_replace("\r\n", "\n", $headers);
-				$message = str_replace("\r\n", "\n", $message);
+				$headers = str_replace("\r\n", MAILER_MIME_EOL, $headers);
+				$message = str_replace("\r\n", MAILER_MIME_EOL, $message);
 			}
 			else {
+				/**
+				 * La fonction mail() utilise prioritairement la valeur de l’option
+				 * sendmail_from comme adresse à passer dans la commande MAIL FROM
+				 * (adresse qui sera utilisée par le serveur SMTP pour forger l’en-tête
+				 * Return-Path). On donne la valeur de $rPath à l’option sendmail_from
+				 */
+				if( !is_null($rPath) ) {
+					ini_set('sendmail_from', $rPath);
+				}
+				
 				/**
 				 * La fonction mail() va parser elle-même les en-têtes Cc et Bcc
 				 * pour passer les adresses destinataires au serveur SMTP.
@@ -251,13 +260,10 @@ class Mailer {
 			else {
 				$result = mail($recipients, $subject, $message, $headers);
 			}
-		}
-		else {
-			$result = self::sendmail($email->__toString(), array(), $rPath);
-		}
-		
-		if( !PHP_USE_SENDMAIL ) {
-			ini_restore('sendmail_from');
+			
+			if( !PHP_USE_SENDMAIL ) {
+				ini_restore('sendmail_from');
+			}
 		}
 		
 		return $result;
@@ -267,7 +273,7 @@ class Mailer {
 	 * Envoi via sendmail
 	 * 
 	 * @param string $email       Email à envoyer
-	 * @param string $recipients  Adresses des destinataires
+	 * @param string $recipients  Adresses supplémentaires de destinataires
 	 * @param string $rPath       Adresse d’envoi (définit le return-path)
 	 * 
 	 * @access public
@@ -296,12 +302,8 @@ class Mailer {
 			$sendmail_cmd .= ' -- ' . escapeshellcmd(implode(' ', $recipients));
 		}
 		
-		if( strncasecmp(PHP_OS, 'Win', 3) != 0 ) {
-			$email = preg_replace("/\r\n?/", "\n", $email);
-		}
-		
 		$sendmail = popen($sendmail_cmd, 'wb');
-		fputs($sendmail, $email);
+		fputs($sendmail, preg_replace("/\r\n?/", MAILER_MIME_EOL, $email));
 		
 		if( ($code = pclose($sendmail)) != 0 ) {
 			trigger_error("Mailer::sendmail() : Sendmail a retourné le code"
@@ -556,7 +558,7 @@ class Email {
 	 */
 	public function save($filename)
 	{
-		if( !is_writable(dirname($filename)) ) {
+		if( !(file_exists($filename) && is_writable($filename)) && !is_writable(dirname($filename)) ) {
 			throw new Exception("Cannot write file '$filename'");
 		}
 		

@@ -27,6 +27,7 @@
  * @see RFC 2047 - Multipurpose Internet Mail Extensions (MIME) Part Three: Message Header Extensions for Non-ASCII Text
  * @see RFC 2048 - Multipurpose Internet Mail Extensions (MIME) Part Four: Registration Procedures
  * @see RFC 2049 - Multipurpose Internet Mail Extensions (MIME) Part Five: Conformance Criteria and Examples
+ * @see RFC 2076 - Common Internet Message Headers
  * @see RFC 2111 - Content-ID and Message-ID Uniform Resource Locators
  * @see RFC 2183 - Communicating Presentation Information in Internet Messages: The Content-Disposition Header Field
  * @see RFC 2231 - MIME Parameter Value and Encoded Word Extensions: Character Sets, Languages, and Continuations
@@ -506,12 +507,14 @@ class Mime_Headers implements Iterator {
 	 * @param string $value  Valeur de l’en-tête
 	 * 
 	 * @access public
-	 * @return Mime_Header object
+	 * @return Mime_Header
 	 */
 	public function add($name, $value)
 	{
 		$header = new Mime_Header($name, $value);
-		if( isset($this->headers[$name]) ) {
+		$name   = $header->name;
+		
+		if( $this->get($name) != null ) {
 			if( !is_array($this->headers[$name]) ) {
 				$this->headers[$name] = array($this->headers[$name]);
 			}
@@ -533,13 +536,14 @@ class Mime_Headers implements Iterator {
 	 * @param string $value  Valeur de l’en-tête
 	 * 
 	 * @access public
-	 * @return Mime_Header object
+	 * @return Mime_Header
 	 */
-	public function set($name, $value, $overwrite = true)
+	public function set($name, $value)
 	{
-		$this->headers[$name] = new Mime_Header($name, $value);
+		$header = new Mime_Header($name, $value);
+		$this->headers[$header->name] = $header;
 		
-		return $this->headers[$name];
+		return $header;
 	}
 	
 	/**
@@ -552,6 +556,7 @@ class Mime_Headers implements Iterator {
 	 */
 	public function get($name)
 	{
+		$name = Mime_Header::validName($name);
 		if( isset($this->headers[$name])
 			&& (is_array($this->headers[$name]) || $this->headers[$name]->value != '') )
 		{
@@ -571,6 +576,7 @@ class Mime_Headers implements Iterator {
 	 */
 	public function remove($name)
 	{
+		$name = Mime_Header::validName($name);
 		if( isset($this->headers[$name]) ) {
 			unset($this->headers[$name]);
 		}
@@ -610,7 +616,7 @@ class Mime_Headers implements Iterator {
 		}
 		
 		return $ret;
-	} 
+	}
 	
 	/**
 	 * Retourne le bloc d’en-têtes sous forme de chaîne
@@ -689,11 +695,7 @@ class Mime_Header {
 	 */
 	public function __construct($name, $value)
 	{
-		if( !self::checkName($name) ) {
-			throw new Exception("'$name' is not a valid header name!");
-		}
-		
-		$name  = str_replace(' ', '-', ucwords(str_replace('-', ' ', $name)));
+		$name  = self::validName($name);
 		
 		/**
 		 * Le contenu de l’en-tête ne doit contenir aucun retour chariot
@@ -726,11 +728,15 @@ class Mime_Header {
 	 * @param string $name
 	 * 
 	 * @access public
-	 * @return boolean
+	 * @return string
 	 */
-	public function checkName($name)
+	public function validName($name)
 	{
-		return (bool) preg_match('/^[\x21-\x39\x3B-\x7E]+$/', $name);
+		if( !preg_match('/^[\x21-\x39\x3B-\x7E]+$/', $name) ) {
+			throw new Exception("'$name' is not a valid header name!");
+		}
+		
+		return str_replace(' ', '-', ucwords(str_replace('-', ' ', $name)));
 	}
 	
 	/**
@@ -834,7 +840,7 @@ class Mime_Header {
 		return wordwrap(sprintf('%s: %s', $this->_name, $value), 77, "\r\n\t");
 	}
 	
-	public function __get($name)
+	private function __get($name)
 	{
 		$value = null;
 		

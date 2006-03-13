@@ -2,10 +2,10 @@
 
 function mail($recipients, $subject, $message, $headers)
 {
-	$pattern = '(.*<)?([-!#$%&\'*+\/0-9=?a-z^_`{|}~.]+)@[-a-z0-9.]+(?(1)>)(\\r\\n|$)';
+	$pattern = '(.*<)?([-!#$%&\'*+\\/0-9=?a-z^_`{|}~.]+)@[-a-z0-9.]+(?(1)>)(?:\\r\\n|$)';
 	
 	if( !preg_match("/From: $pattern/Ui", $headers, $match) ) {
-		throw new Exception("Mailer::send() : from address needed!");
+		throw new Exception("mail() (online): Custom \"From:\" header needed");
 	}
 	
 	$from = $reply = $match[2];
