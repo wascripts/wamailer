@@ -330,7 +330,7 @@ class Mime_Part {
 	 * @var boolean
 	 * @access public
 	 */
-	public $wraptext = false;
+	public $wraptext = true;
 	
 	/**
 	 * Constructeur de classe
@@ -434,14 +434,14 @@ class Mime_Part {
 		return $this->headers->__toString() . "\r\n" . $message;
 	}
 	
-	public function __set($name, $value)
+	private function __set($name, $value)
 	{
 		if( $name == 'encoding' ) {
 			$this->headers->set('Content-Transfer-Encoding', $value);
 		}
 	}
 	
-	public function __get($name)
+	private function __get($name)
 	{
 		$value = null;
 		
@@ -512,7 +512,7 @@ class Mime_Headers implements Iterator {
 	public function add($name, $value)
 	{
 		$header = new Mime_Header($name, $value);
-		$name   = $header->name;
+		$name   = strtolower($header->name);
 		
 		if( $this->get($name) != null ) {
 			if( !is_array($this->headers[$name]) ) {
@@ -541,7 +541,7 @@ class Mime_Headers implements Iterator {
 	public function set($name, $value)
 	{
 		$header = new Mime_Header($name, $value);
-		$this->headers[$header->name] = $header;
+		$this->headers[strtolower($name)] = $header;
 		
 		return $header;
 	}
@@ -556,7 +556,7 @@ class Mime_Headers implements Iterator {
 	 */
 	public function get($name)
 	{
-		$name = Mime_Header::validName($name);
+		$name = strtolower($name);
 		if( isset($this->headers[$name])
 			&& (is_array($this->headers[$name]) || $this->headers[$name]->value != '') )
 		{
@@ -576,7 +576,7 @@ class Mime_Headers implements Iterator {
 	 */
 	public function remove($name)
 	{
-		$name = Mime_Header::validName($name);
+		$name = strtolower($name);
 		if( isset($this->headers[$name]) ) {
 			unset($this->headers[$name]);
 		}
