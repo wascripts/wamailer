@@ -273,7 +273,7 @@ class Mime {
 			$type = mime_content_type($filename);
 		}
 		else if( function_exists('exec') ) {
-			$type = exec(sprintf('file -bi %s', escapeshellarg($filename)), $null, $result);
+			$type = exec(sprintf('file -biL %s 2>/dev/null', escapeshellarg($filename)), $null, $result);
 			
 			if( $result !== 0 || !strpos($type, '/') ) {
 				$type = '';

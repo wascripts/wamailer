@@ -152,7 +152,7 @@ class Mailer_SMTP {
 		// Code error   : 500, 501, 504, 421
 		//
 		$this->put(sprintf("EHLO %s\r\n", $domain));
-		if( !$this->checkResponse(250, false) ) {
+		if( !$this->checkResponse(250) ) {
 			$this->put(sprintf("HELO %s\r\n", $domain));
 			if( !$this->checkResponse(250) ) {
 				return false;

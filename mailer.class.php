@@ -58,8 +58,10 @@ unset($hostname);
  * - ajout méthode pour remplissage de Mime_Part::body ?
  * - Ajouter une méthode pour récupération contenu email, en-têtes, etc plutôt
  *   qu’appeller directement __toString() ?
+ * - propagation charset dans les objets entêtes (pour encodage de param)
+ * - Ajout de Email::loadFromString() et Email::saveAsString() ?
  * 
- * Les sources qui m’ont bien aidées : 
+ * Les sources qui m’ont bien aidées :
  * 
  * @link http://cvs.php.net/php-src/ext/standard/mail.c
  * @link http://cvs.php.net/php-src/win32/sendmail.c
