@@ -26,9 +26,9 @@
 /**
  * Vérifie si une adresse email N’EST PAS valide (domaine et compte).
  * Ceci est différent d’une vérification de validité.
- * Le serveur SMTP peut très bien répondre par un 250 ok pour cet email,
- * les erreurs d’adressage étant traitées ultérieurement au niveau du
- * serveur POP.
+ * Le serveur SMTP peut très bien répondre par un 250 ok pour une adresse
+ * email non existante, les erreurs d’adressage étant traitées ultérieurement
+ * au niveau du serveur POP.
  * 
  * Appels possibles à cette fonction :
  * 

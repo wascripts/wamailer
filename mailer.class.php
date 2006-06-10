@@ -68,15 +68,20 @@ unset($hostname);
  */
 class Mailer {
 	
+	/**
+	 * Version courante de Wamailer
+	 */
+	const VERSION = '3.0';
+	
 	/********************** RÉGLAGES SENDMAIL **********************/
 	
 	/**
 	 * Activation du mode sendmail
 	 * 
 	 * @var boolean
-	 * @access public
+	 * @access private
 	 */
-	static $sendmail_mode = false;
+	private static $sendmail_mode = false;
 	
 	/**
 	 * Commande de lancement de sendmail
@@ -88,17 +93,12 @@ class Mailer {
 	 * @var string
 	 * @access public
 	 */
-	static $sendmail_cmd  = '/usr/sbin/sendmail -t -i';
+	public static $sendmail_cmd  = '/usr/sbin/sendmail -t -i';
 	
 	/***************************************************************/
 	
-	static $smtp_mode = false;
-	
-	/**
-	 * Version courante de Wamailer
-	 */
-	const VERSION = '3.0';
-	
+	private static $smtp_mode = false;
+		
 	private function __construct() {}
 	
 	/**
@@ -110,7 +110,7 @@ class Mailer {
 	 * @access public
 	 * @return void
 	 */
-	static function useSendmail($use)
+	public static function useSendmail($use)
 	{
 		self::$sendmail_mode = $use;
 	}
@@ -124,7 +124,7 @@ class Mailer {
 	 * @access public
 	 * @return boolean
 	 */
-	static function checkMailSyntax($email)
+	public static function checkMailSyntax($email)
 	{
 		return (bool) preg_match('/^(?:(?(?<!^)\.)[-!#$%&\'*+\/0-9=?a-z^_`{|}~]+)+@'
 			. '(?:(?(?<!@)\.)[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?)+$/i', $email);
@@ -140,7 +140,7 @@ class Mailer {
 	 * @access public
 	 * @return string
 	 */
-	static function clearAddressList($addressList)
+	public static function clearAddressList($addressList)
 	{
 		preg_match_all('/(?<=^|[\s,<])[-!#$%&\'*+\/0-9=?a-z^_`{|}~.]+@[-a-z0-9.]+(?=[\s,>]|$)/Si',
 			$addressList, $matches);
@@ -157,7 +157,7 @@ class Mailer {
 	 * @access public
 	 * @return boolean
 	 */
-	static function send(Email $email)
+	public static function send(Email $email)
 	{
 		$email->headers->set('X-Mailer', sprintf('Wamailer/%.1f (http://phpcodeur.net/)', self::VERSION));
 		
@@ -281,7 +281,7 @@ class Mailer {
 	 * @access public
 	 * @return boolean
 	 */
-	static function sendmail($email, $recipients = null, $rPath = null)
+	public static function sendmail($email, $recipients = null, $rPath = null)
 	{
 		if( !empty(self::$sendmail_cmd) ) {
 			$sendmail_cmd = self::$sendmail_cmd;
@@ -326,7 +326,7 @@ class Mailer {
 	 * @access public
 	 * @return boolean
 	 */
-	static function smtpmail($email, $recipients, $rPath = null)
+	public static function smtpmail($email, $recipients, $rPath = null)
 	{
 		if( !class_exists('Mailer_SMTP') ) {
 			require dirname(__FILE__) . '/smtp.class.php';
@@ -371,8 +371,8 @@ class Mailer {
 		return true;
 	}
 	
-	static function setError() {}
-	static function getError() { return $GLOBALS['php_errormsg']; }
+	public static function setError() {}
+	public static function getError() { return $GLOBALS['php_errormsg']; }
 }
 
 class Email {
@@ -723,7 +723,7 @@ class Email {
 	 * @access public
 	 * @return void
 	 */
-	function organization($str)
+	public function organization($str)
 	{
 		$this->headers->set('Organization',
 			Mime::encodeHeader('Organization', $str, $this->charset));

@@ -49,7 +49,7 @@ class Mime {
 	 * @var array
 	 * @access private
 	 */
-	static private $_utf8test = array(
+	private static $_utf8test = array(
 		0x80 => 0, 0xE0 => 0xC0, 0xF0 => 0xE0, 0xF8 => 0xF0, 0xFC => 0xF8, 0xFE => 0xFC
 	);
 	
@@ -64,7 +64,7 @@ class Mime {
 	 * @access public
 	 * @return string
 	 */
-	static function quotedPrintableEncode($str)
+	public static function quotedPrintableEncode($str)
 	{
 		$str = preg_replace('/\r\n?|\n/', "\r\n", $str);
 		$str = preg_replace('/([^\x09\x0A\x0D\x20-\x3C\x3E-\x7E]|[\x09\x20](?=\x0D\x0A|$))/e',
@@ -121,7 +121,7 @@ class Mime {
 	 * @access public
 	 * @return string
 	 */
-	static function encodeHeader($name, $value, $charset, $token = 'text')
+	public static function encodeHeader($name, $value, $charset, $token = 'text')
 	{
 		if( preg_match('/[\x00-\x1F\x7F-\xFF]/', $value) ) {
 			
@@ -243,7 +243,7 @@ class Mime {
 	 * @access public
 	 * @return string
 	 */
-	static function wordwrap($str, $maxlen = 78)
+	public static function wordwrap($str, $maxlen = 78)
 	{
 		if( strlen($str) > $maxlen ) {
 			$lines = explode("\r\n", $str);
@@ -263,14 +263,18 @@ class Mime {
 	 * @access public
 	 * @return string
 	 */
-	static function getType($filename)
+	public static function getType($filename)
 	{
 		if( !is_readable($filename) ) {
 			throw new Exception("Cannot read file '$filename'");
 		}
 		
-		if( function_exists('mime_content_type') ) {
+		if( extension_loaded('mime_magic') ) {
 			$type = mime_content_type($filename);
+		}
+		else if( extension_loaded('fileinfo') ) {
+			$info = new finfo(FILEINFO_MIME);
+			$type = $info->file($filename);
 		}
 		else if( function_exists('exec') ) {
 			$type = exec(sprintf('file -biL %s 2>/dev/null', escapeshellarg($filename)), $null, $result);
