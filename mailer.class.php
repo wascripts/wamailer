@@ -53,11 +53,9 @@ unset($hostname);
  * Classe d’envois d’emails
  * 
  * @todo
- * - Envoi avec SMTP
+ * - Envoi avec SMTP (en cours)
  * - parsing des emails sauvegardés
  * - ajout méthode pour remplissage de Mime_Part::body ?
- * - Ajouter une méthode pour récupération contenu email, en-têtes, etc plutôt
- *   qu’appeller directement __toString() ?
  * - propagation charset dans les objets entêtes (pour encodage de param)
  * - Ajout de Email::loadFromString() et Email::saveAsString() ?
  * 
@@ -66,7 +64,7 @@ unset($hostname);
  * @link http://cvs.php.net/php-src/ext/standard/mail.c
  * @link http://cvs.php.net/php-src/win32/sendmail.c
  */
-class Mailer {
+abstract class Mailer {
 	
 	/**
 	 * Version courante de Wamailer
@@ -95,11 +93,23 @@ class Mailer {
 	 */
 	public static $sendmail_cmd  = '/usr/sbin/sendmail -t -i';
 	
-	/***************************************************************/
+	/********************** RÉGLAGES SMTP **************************/
 	
+	/**
+	 * Activation du mode SMTP
+	 * 
+	 * @var boolean
+	 * @access private
+	 */
 	private static $smtp_mode = false;
-		
-	private function __construct() {}
+	
+	/**
+	 * Serveur SMTP à contacter
+	 * 
+	 * @var string
+	 * @access public
+	 */
+	public static $smtp_server = 'localhost';
 	
 	/**
 	 * Active ou désactive l’utilisation directe de sendmail pour l’envoi des emails
@@ -113,6 +123,20 @@ class Mailer {
 	public static function useSendmail($use)
 	{
 		self::$sendmail_mode = $use;
+	}
+	
+	/**
+	 * Active ou désactive l’utilisation directe d’un serveur SMTP pour l’envoi des emails
+	 * 
+	 * @param boolean $use  Active/désactive le mode SMTP
+	 * 
+	 * @static
+	 * @access public
+	 * @return void
+	 */
+	public static function useSMTP($use)
+	{
+		self::$smtp_mode = $use;
 	}
 	
 	/**
@@ -138,14 +162,14 @@ class Mailer {
 	 * 
 	 * @static
 	 * @access public
-	 * @return string
+	 * @return array
 	 */
 	public static function clearAddressList($addressList)
 	{
 		preg_match_all('/(?<=^|[\s,<])[-!#$%&\'*+\/0-9=?a-z^_`{|}~.]+@[-a-z0-9.]+(?=[\s,>]|$)/Si',
 			$addressList, $matches);
 		
-		return implode(', ', $matches[0]);
+		return $matches[0];
 	}
 	
 	/**
@@ -175,12 +199,30 @@ class Mailer {
 				require dirname(__FILE__) . '/smtp.class.php';
 			}
 			
+			//
+			// Nous devons passer directement les adresses email des destinataires
+			// au serveur SMTP.
+			// On récupère ces adresses des entêtes To, Cc et Bcc.
+			//
+			$recipients = array();
+			foreach( array('to', 'cc', 'bcc') as $name ) {
+				$header = $email->headers->get($name);
+				
+				if( !is_null($header) ) {
+					$addressList = $header->__toString();
+					$recipients = array_merge($recipients,
+						self::clearAddressList($addressList));
+				}
+			}
+			
 			$email->headers->get('X-Mailer')->append(' (SMTP mode)');
+			//
+			// L’entête Bcc ne doit pas apparaitre dans l’email envoyé.
+			// On le supprime donc.
+			//
+			$email->headers->remove('Bcc');
 			
-			// @todo
-			// Récupérer adresses To, Cc et Bcc dans $recipients puis supprimer en-tête bcc
-			
-			$result = false;//self::smtpmail($email->__toString(), $recipients, $rPath);
+			$result = self::smtpmail($email->__toString(), $recipients, $rPath);
 		}
 		else {
 			$subject = $email->headers->get('Subject');
@@ -215,7 +257,7 @@ class Mailer {
 					 * de cette personnalisation en argument de la fonction mail()
 					 * sous peine d’obtenir une erreur.
 					 */
-					$recipients = self::clearAddressList($recipients);
+					$recipients = implode(', ', self::clearAddressList($recipients));
 				}
 			}
 			
@@ -251,12 +293,13 @@ class Mailer {
 				$header_cc = $email->headers->get('Cc');
 				if( !is_null($header_cc) ) {
 					$header_cc = $header_cc->__toString();
-					$new_header_cc = new Mime_Header('Cc', self::clearAddressList($header_cc));
+					$new_header_cc = new Mime_Header('Cc',
+						implode(', ', self::clearAddressList($header_cc)));
 					$headers = str_replace($header_cc, $new_header_cc->__toString(), $headers);
 				}
 			}
 			
-			if( ini_get('safe_mode') == false && !is_null($rPath) ) {
+			if( !ini_get('safe_mode') && !is_null($rPath) ) {
 				$result = mail($recipients, $subject, $message, $headers, '-f' . $rPath);
 			}
 			else {
@@ -336,37 +379,33 @@ class Mailer {
 			$rPath = ini_get('sendmail_from');
 		}
 		
-		// smtp::isConnected()
-		if( !is_resource($this->smtp->socket) || !$this->smtp->noop() ) {
-			$this->smtp->connect();
-		}
+		$smtp = new Mailer_SMTP();
+		$smtp->connect(self::$smtp_server);
 		
-		if( !$this->smtp->from($rPath) ) {
-			$this->error($this->smtp->msg_error);
+		if( !$smtp->from($rPath) ) {
+//			$this->error($smtp->msg_error);
+			$GLOBALS['php_errormsg'] = $smtp->responseData;
+			$smtp->quit();
 			return false;
 		}
 		
 		foreach( $recipients as $recipient ) {
-			if( !$this->smtp->to($email) ) {
-				$this->error($this->smtp->msg_error);
+			if( !$smtp->to($recipient) ) {
+//				$this->error($smtp->msg_error);
+				$GLOBALS['php_errormsg'] = $smtp->responseData;
+				$smtp->quit();
 				return false;
 			}
 		}
 		
-		if( !$this->smtp->send($headers, $message) ) {
-			$this->error($this->smtp->msg_error);
+		if( !$smtp->send($email) ) {
+//			$this->error($smtp->msg_error);
+			$GLOBALS['php_errormsg'] = $smtp->responseData;
+			$smtp->quit();
 			return false;
 		}
 		
-		//
-		// Apparamment, les commandes ne sont réellement effectuées qu'après
-		// la fermeture proprement de la connexion au serveur SMTP. On quitte
-		// donc la connexion courante si l’option de connexion persistante
-		// n’est pas activée.
-		//
-		if( !$this->persistent_connection ) {
-			$this->smtp->quit();
-		}
+		$smtp->quit();
 		
 		return true;
 	}

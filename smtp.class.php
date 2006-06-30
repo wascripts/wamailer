@@ -52,7 +52,7 @@ class Mailer_SMTP {
 	 * @var string
 	 * @access private
 	 */
-	private $server     = '';
+	private $server     = 'localhost';
 	
 	/**
 	 * Port d'accès (25, par défaut)
@@ -123,7 +123,7 @@ class Mailer_SMTP {
 			$domain = $_SERVER['SERVER_NAME'];
 		}
 		else if( !($domain = @php_uname('n')) ) {
-			$domain = 'wamailer';
+			$domain = 'localhost';
 		}
 		
 		$this->_responseCode = null;
@@ -164,6 +164,11 @@ class Mailer_SMTP {
 		}
 		
 		return true;
+	}
+	
+	public function isConnected()
+	{
+		return is_resource($this->smtp->socket);
 	}
 	
 	public function put($input)
