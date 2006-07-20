@@ -896,10 +896,6 @@ class Email {
 		$this->headers->set('MIME-Version', '1.0');
 		$this->headers->set('Message-ID', sprintf('<%s@%s>', md5(microtime().rand()), MAILER_HOSTNAME));
 		
-		if( $this->headers->get('To') == null && $this->headers->get('Cc') == null ) {
-			$this->headers->set('To', 'Undisclosed-recipients:;');
-		}
-		
 		$headers = $this->headers->__toString();
 		if( !empty($this->_compiledBody) ) {
 			return $headers . $this->_compiledBody;
