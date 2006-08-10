@@ -269,15 +269,13 @@ class Mime {
 			throw new Exception("Cannot read file '$filename'");
 		}
 		
-		if( extension_loaded('mime_magic') ) {
-			$type = mime_content_type($filename);
-		}
-		else if( extension_loaded('fileinfo') ) {
+		if( extension_loaded('fileinfo') ) {
 			$info = new finfo(FILEINFO_MIME);
 			$type = $info->file($filename);
 		}
 		else if( function_exists('exec') ) {
-			$type = exec(sprintf('file -biL %s 2>/dev/null', escapeshellarg($filename)), $null, $result);
+			$type = exec(sprintf('file -biL %s 2>/dev/null',
+				escapeshellarg($filename)), $null, $result);
 			
 			if( $result !== 0 || !strpos($type, '/') ) {
 				$type = '';
@@ -287,6 +285,9 @@ class Mime {
 					list($type) = explode(';', $type);
 				}
 			}*/
+		}
+		else if( extension_loaded('mime_magic') ) {
+			$type = mime_content_type($filename);
 		}
 		
 		if( empty($type) ) {
@@ -306,7 +307,7 @@ class Mime_Part {
 	 * @see Mime_Headers class
 	 * @access public
 	 */
-	public $headers  = null;
+	public $headers   = null;
 	
 	/**
 	 * Contenu de cette partie
@@ -314,7 +315,15 @@ class Mime_Part {
 	 * @var mixed
 	 * @access public
 	 */
-	public $body     = null;
+	public $body      = null;
+	
+	/**
+	 * tableau des éventuelles sous-parties
+	 * 
+	 * @var mixed
+	 * @access public
+	 */
+	private $subparts = array();
 	
 	/**
 	 * Frontière de séparation entre les différentes sous-parties
@@ -322,7 +331,7 @@ class Mime_Part {
 	 * @var string
 	 * @access public
 	 */
-	public $boundary = null;
+	public $boundary  = null;
 	
 	/**
 	 * Limitation de longueur des lignes de texte.
@@ -334,7 +343,7 @@ class Mime_Part {
 	 * @var boolean
 	 * @access public
 	 */
-	public $wraptext = true;
+	public $wraptext  = true;
 	
 	/**
 	 * Constructeur de classe
@@ -354,14 +363,33 @@ class Mime_Part {
 	}
 	
 	/**
-	 * Indique si cet ensemble contient un corps (body) simple ou est un sous-ensemble composé
+	 * Ajout de sous-partie(s) à ce bloc MIME
+	 * 
+	 * @param mixed $subpart  Peut être un objet Mime_Part ou un tableau
+	 *                        d’objets Mime_Part
+	 * 
+	 * @access public
+	 * @return void
+	 */
+	public function addSubPart($subpart)
+	{
+		if( is_array($subpart) ) {
+			$this->subparts = array_merge($this->subparts, $subpart);
+		}
+		else {
+			array_push($this->subparts, $subpart);
+		}
+	}
+	
+	/**
+	 * Indique si ce bloc MIME contient des sous-parties
 	 * 
 	 * @access public
 	 * @return boolean
 	 */
 	public function isMultiPart()
 	{
-		return is_array($this->body);
+		return count($this->subparts) > 0;
 	}
 	
 	/**
@@ -374,14 +402,19 @@ class Mime_Part {
 			$this->headers->set('Content-Type', 'application/octet-stream');
 		}
 		
+		$message = $this->body;
+		
 		if( $this->isMultiPart() ) {
 			$this->boundary = '--=_Part_' . md5(microtime());
 			$this->headers->get('Content-Type')->param('boundary', $this->boundary);
 			
-			$message = '';
-			foreach( $this->body as $_subpart ) {
+			if( $message != '' ) {
+				$message .= "\r\n\r\n";
+			}
+			
+			foreach( $this->subparts as $subpart ) {
 				$message .= '--' . $this->boundary . "\r\n";
-				$message .= $_subpart->__toString();
+				$message .= $subpart->__toString();
 				$message .= "\r\n";
 			}
 			
@@ -404,7 +437,7 @@ class Mime_Part {
 					 * 
 					 * @see RFC 2045#6.7
 					 */
-					$message = Mime::quotedPrintableEncode($this->body);
+					$message = Mime::quotedPrintableEncode($message);
 					break;
 				case 'base64':
 					/**
@@ -412,11 +445,11 @@ class Mime_Part {
 					 * 
 					 * @see RFC 2045#6.8
 					 */
-					$message = rtrim(chunk_split(base64_encode($this->body)));
+					$message = rtrim(chunk_split(base64_encode($message)));
 					break;
 				case '7bit':
 				case '8bit':
-					$message = preg_replace("/\r\n?|\n/", "\r\n", $this->body);
+					$message = preg_replace("/\r\n?|\n/", "\r\n", $message);
 					
 					/**
 					 * Limitation sur les longueurs des lignes de texte.
@@ -427,10 +460,6 @@ class Mime_Part {
 					 * @see RFC 2822#2.1.1
 					 */
 					$message = Mime::wordwrap($message, $this->wraptext ? 78 : 998);
-					break;
-				case 'binary':
-				default:
-					$message = $this->body;
 					break;
 			}
 		}

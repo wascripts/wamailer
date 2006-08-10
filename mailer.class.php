@@ -55,7 +55,6 @@ unset($hostname);
  * @todo
  * - Envoi avec SMTP (en cours)
  * - parsing des emails sauvegardés
- * - ajout méthode pour remplissage de Mime_Part::body ?
  * - propagation charset dans les objets entêtes (pour encodage de param)
  * - Ajout de Email::loadFromString() et Email::saveAsString() ?
  * 
@@ -183,7 +182,7 @@ abstract class Mailer {
 	 */
 	public static function send(Email $email)
 	{
-		$email->headers->set('X-Mailer', sprintf('Wamailer/%.1f (http://phpcodeur.net/)', self::VERSION));
+		$email->headers->set('X-Mailer', sprintf('Wamailer/%.1f', self::VERSION));
 		
 		$rPath = $email->headers->get('Return-Path');
 		if( !is_null($rPath) ) {
@@ -191,7 +190,7 @@ abstract class Mailer {
 		}
 		
 		if( self::$sendmail_mode == true ) {
-			$email->headers->get('X-Mailer')->append(' (sendmail mode)');
+			$email->headers->get('X-Mailer')->append(' (Sendmail mode)');
 			$result = self::sendmail($email->__toString(), null, $rPath);
 		}
 		else if( self::$smtp_mode == true ) {
@@ -787,9 +786,9 @@ class Email {
 	 * @access public
 	 * @return Mime_Part
 	 */
-	public function setTextBody($message, $charset = '')
+	public function setTextBody($message, $charset = null)
 	{
-		if( empty($charset) ) {
+		if( is_null($charset) ) {
 			$charset = $this->charset;
 		}
 		
@@ -809,9 +808,9 @@ class Email {
 	 * @access public
 	 * @return Mime_Part
 	 */
-	public function setHTMLBody($message, $charset = '')
+	public function setHTMLBody($message, $charset = null)
 	{
-		if( empty($charset) ) {
+		if( is_null($charset) ) {
 			$charset = $this->charset;
 		}
 		
@@ -908,7 +907,9 @@ class Email {
 			$rootPart = $this->_htmlPart;
 			
 			if( !is_null($this->_textPart) ) {
-				$rootPart = new Mime_Part(array($this->_textPart, $this->_htmlPart));
+				$rootPart = new Mime_Part();
+				$rootPart->addSubPart($this->_textPart);
+				$rootPart->addSubPart($this->_htmlPart);
 				$rootPart->headers->set('Content-Type', 'multipart/alternative');
 			}
 			
@@ -933,11 +934,12 @@ class Email {
 			}
 			
 			if( count($embedParts) > 0 ) {
-				$embedPart = new Mime_Part($embedParts);
+				$embedPart = new Mime_Part();
+				$embedPart->addSubPart($rootPart);
+				$embedPart->addSubPart($embedParts);
 				$embedPart->headers->set('Content-Type', 'multipart/related');
 				$embedPart->headers->get('Content-Type')->param('type',
 					$rootPart->headers->get('Content-Type')->value);
-				array_unshift($embedPart->body, $rootPart);
 				$rootPart = $embedPart;
 			}
 		}
@@ -945,18 +947,24 @@ class Email {
 			$rootPart = $this->_textPart;
 		}
 		
+		// filtrage nécessaire après la boucle de traitement des objets embarqués plus haut
 		$attachParts = array_filter($attachParts,
 			create_function('$var', 'return !is_null($var);'));
 		
 		if( count($attachParts) > 0 ) {
-			$mixedPart = new Mime_Part($attachParts);
-			$mixedPart->headers->set('Content-Type', 'multipart/mixed');
-			
 			if( !is_null($rootPart) ) {
-				array_unshift($mixedPart->body, $rootPart);
+				$mixedPart = new Mime_Part();
+				$mixedPart->headers->set('Content-Type', 'multipart/mixed');
+				$mixedPart->addSubPart($rootPart);
+				$mixedPart->addSubPart($attachParts);
 			}
 			else if( count($attachParts) == 1 ) {
 				$mixedPart = $attachParts[0];
+			}
+			else {
+				$mixedPart = new Mime_Part();
+				$mixedPart->headers->set('Content-Type', 'multipart/mixed');
+				$mixedPart->addSubPart($attachParts);
 			}
 			
 			$rootPart = $mixedPart;
@@ -966,12 +974,16 @@ class Email {
 		// Le corps d’un email est optionnel (cf. RFC 2822#3.5)
 		//
 		if( !is_null($rootPart) ) {
-			$this->_compiledBody = $rootPart->__toString();
-			
+			//
+			// Par convention, un bref message informatif est ajouté aux emails
+			// composés de plusieurs sous-parties, au cas où le client mail
+			// ne supporterait pas ceux-ci…
+			//
 			if( strncasecmp($rootPart->headers->get('Content-Type')->value, 'multipart', 9) == 0 ) {
-				$this->_compiledBody = preg_replace("/\r\n\r\n/",
-					"\r\n\r\nThis is a multi-part message in MIME format.\r\n\r\n", $this->_compiledBody, 1);
+				$rootPart->body = "This is a multi-part message in MIME format.";
 			}
+			
+			$this->_compiledBody = $rootPart->__toString();
 		}
 		
 		return $headers . $this->_compiledBody;
