@@ -329,15 +329,15 @@ class Mime_Part {
 	 * Frontière de séparation entre les différentes sous-parties
 	 * 
 	 * @var string
-	 * @access public
+	 * @access private
 	 */
-	public $boundary  = null;
+	private $boundary  = null;
 	
 	/**
 	 * Limitation de longueur des lignes de texte.
 	 * Par défaut, la limitation est celle imposée par la RFC2822,
 	 * à savoir 998 octets + CRLF
-	 * Si cette attribut est placé à true, la limitation est de 78
+	 * Si cet attribut est placé à true, la limitation est de 78
 	 * octets + CRLF
 	 * 
 	 * @var boolean
@@ -365,8 +365,8 @@ class Mime_Part {
 	/**
 	 * Ajout de sous-partie(s) à ce bloc MIME
 	 * 
-	 * @param mixed $subpart  Peut être un objet Mime_Part ou un tableau
-	 *                        d’objets Mime_Part
+	 * @param mixed $subpart  Peut être un objet Mime_Part, un tableau
+	 *                        d’objets Mime_Part, ou simplement une chaîne
 	 * 
 	 * @access public
 	 * @return void
@@ -414,7 +414,7 @@ class Mime_Part {
 			
 			foreach( $this->subparts as $subpart ) {
 				$message .= '--' . $this->boundary . "\r\n";
-				$message .= $subpart->__toString();
+				$message .= !is_string($subpart) ? $subpart->__toString() : $subpart;
 				$message .= "\r\n";
 			}
 			

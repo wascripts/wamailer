@@ -427,9 +427,9 @@ class Email {
 	 * Email du destinataire
 	 * 
 	 * @var string
-	 * @access private
+	 * @access protected
 	 */
-	private $sender = '';
+	protected $sender = '';
 	
 	/**
 	 * Jeu de caractères générique de l’email (D’autres jeux peuvent être
@@ -445,41 +445,47 @@ class Email {
 	 * 
 	 * @var object
 	 * @see Mime_Headers class
-	 * @access private
+	 * @access protected
 	 */
-	private $_headers = null;
+	protected $_headers = null;
 	
 	/**
 	 * Partie texte brut de l’email
 	 * 
 	 * @var object
 	 * @see Mime_Part class
-	 * @access private
+	 * @access protected
 	 */
-	private $_textPart = null;
+	protected $_textPart = null;
 	
 	/**
 	 * Partie HTML de l’email
 	 * 
 	 * @var object
 	 * @see Mime_Part class
-	 * @access private
+	 * @access protected
 	 */
-	private $_htmlPart = null;
+	protected $_htmlPart = null;
 	
 	/**
 	 * Multi-Partie globale de l’email
 	 * 
 	 * @var array
-	 * @access private
+	 * @access protected
 	 */
-	private $_attachParts = array();
+	protected $_attachParts = array();
 	
 	/**
 	 * @var string
-	 * @access private
+	 * @access protected
 	 */
-	private $_compiledBody = '';
+	protected $headers_txt = '';
+	
+	/**
+	 * @var string
+	 * @access protected
+	 */
+	protected $message_txt = '';
 	
 	/**
 	 * Constructeur de classe
@@ -582,7 +588,7 @@ class Email {
 			}
 		}
 		else {*/
-			$email->_compiledBody = "\r\n".$message;
+			$email->message_txt = "\r\n".$message;
 //		}
 		
 		return $returnBool ? true : $email;
@@ -796,7 +802,7 @@ class Email {
 		$this->_textPart->headers->set('Content-Type', 'text/plain');
 		$this->_textPart->headers->set('Content-Transfer-Encoding', '8bit');
 		$this->_textPart->headers->get('Content-Type')->param('charset', $charset);
-		$this->_compiledBody = '';
+		$this->message_txt = '';
 		
 		return $this->_textPart;
 	}
@@ -818,7 +824,7 @@ class Email {
 		$this->_htmlPart->headers->set('Content-Type', 'text/html');
 		$this->_htmlPart->headers->set('Content-Transfer-Encoding', '8bit');
 		$this->_htmlPart->headers->get('Content-Type')->param('charset', $charset);
-		$this->_compiledBody = '';
+		$this->message_txt = '';
 		
 		return $this->_htmlPart;
 	}
@@ -878,7 +884,7 @@ class Email {
 		$attach->headers->set('Content-Transfer-Encoding', 'base64');
 		
 		array_push($this->_attachParts, $attach);
-		$this->_compiledBody = '';
+		$this->message_txt = '';
 		
 		return $attach;
 	}
@@ -895,9 +901,9 @@ class Email {
 		$this->headers->set('MIME-Version', '1.0');
 		$this->headers->set('Message-ID', sprintf('<%s@%s>', md5(microtime().rand()), MAILER_HOSTNAME));
 		
-		$headers = $this->headers->__toString();
-		if( !empty($this->_compiledBody) ) {
-			return $headers . $this->_compiledBody;
+		$this->headers_txt = $this->headers->__toString();
+		if( !empty($this->message_txt) ) {
+			return $this->headers_txt . $this->message_txt;
 		}
 		
 		$rootPart = null;
@@ -983,10 +989,10 @@ class Email {
 				$rootPart->body = "This is a multi-part message in MIME format.";
 			}
 			
-			$this->_compiledBody = $rootPart->__toString();
+			$this->message_txt = $rootPart->__toString();
 		}
 		
-		return $headers . $this->_compiledBody;
+		return $this->headers_txt . $this->message_txt;
 	}
 	
 	private function __set($name, $value)
