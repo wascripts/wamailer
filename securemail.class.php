@@ -48,10 +48,10 @@ class SecureMail extends Email {
 	
 	public $tmpdir      = '/tmp';
 	public $logfile     = '/dev/null';
+	public $gpg_bin     = '/usr/bin/gpg';
 	public $digest_algo = 'sha1';
 	public $cipher_algo = null;// si non spécifié, GPG utilisera un algorithme par défaut
 	
-	private $gpg_bin    = '/usr/bin/gpg';
 	private $_sign      = false;
 	private $_encrypt   = false;
 	private $secretkey  = null;
