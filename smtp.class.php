@@ -31,10 +31,6 @@
  * @link http://www.faqs.org/rfcs/ (anglais)
  * @link http://www.commentcamarche.net/internet/smtp.php3
  * @link http://www.interpc.fr/mapage/billaud/telmail.htm
- * 
- * @todo
- * - si méthode from() non appellée lorsqu'on appelle to(), utiliser valeur php.ini sendmail_from
- * - si aucune indication de serveur, utiliser valeurs smtp et smtp_port du php.ini
  */
 
 class Mailer_SMTP {
@@ -52,31 +48,31 @@ class Mailer_SMTP {
 	 * @var string
 	 * @access private
 	 */
-	private $server     = 'localhost';
+	private $server;
 	
 	/**
-	 * Port d'accès (25, par défaut)
+	 * Port d'accès
 	 * 
 	 * @var integer
 	 * @access private
 	 */
-	private $port       = 25;
+	private $port;
 	
 	/**
-	 * Login pour l’authentification (si nécessaire)
+	 * Nom d'utilisateur pour l’authentification
 	 * 
 	 * @var string
 	 * @access private
 	 */
-	private $username   = '';
+	private $username;
 	
 	/**
-	 * Mot de passe pour l’authentification (si nécessaire)
+	 * Mot de passe pour l’authentification
 	 * 
 	 * @var string
 	 * @access private
 	 */
-	private $passwd     = '';
+	private $passwd;
 	
 	public  $timeout    = 3;
 	public  $debug      = false;
@@ -84,6 +80,7 @@ class Mailer_SMTP {
 	public  $filename   = '/var/log/wamailer_smtp.log';
 	private $logstr     = '';
 	private $eol        = "\r\n";// pour la sortie standard
+	private $fromCalled = false;
 	
 	private $_responseCode;
 	private $_responseData;
@@ -94,7 +91,7 @@ class Mailer_SMTP {
 			$this->eol = "\n";
 		}
 		
-		if( empty($this->server) ) {
+		if( is_null($this->server) ) {
 			$this->server = ini_get('SMTP');
 			$this->port   = ini_get('smtp_port');
 		}
@@ -105,7 +102,7 @@ class Mailer_SMTP {
 	 * 
 	 * @param string  $server    Nom ou IP du serveur
 	 * @param integer $port      Port d'accès
-	 * @param string  $username  Login pour l’authentification (si nécessaire)
+	 * @param string  $username  Nom d'utilisateur pour l’authentification (si nécessaire)
 	 * @param string  $passwd    Mot de passe pour l’authentification (si nécessaire)
 	 * 
 	 * @access public
@@ -159,7 +156,7 @@ class Mailer_SMTP {
 			}
 		}
 		
-		if( !empty($username) && !empty($passwd) ) {
+		if( !is_null($username) && !is_null($passwd) ) {
 			return $this->authenticate($username, $passwd);
 		}
 		
@@ -250,8 +247,13 @@ class Mailer_SMTP {
 	 * @access public
 	 * @return boolean
 	 */
-	public function from($email)
+	public function from($email = null)
 	{
+		$this->fromCalled = true;
+		if( is_null($email) ) {
+			$email = ini_get('sendmail_from');
+		}
+		
 		//
 		// Code success : 250
 		// Code failure : 552, 451, 452
@@ -265,7 +267,9 @@ class Mailer_SMTP {
 	/**
 	 * Envoit la commande RCPT TO
 	 * Ceci indique au serveur SMTP l’adresse email du destinataire
-	 * Cette commande doit être invoquée autant de fois qu’il y a de destinataire
+	 * Cette commande doit être invoquée autant de fois qu’il y a de destinataire.
+	 * Si la méthode from() n’a pas été appelée auparavant, elle est appelée
+	 * automatiquement.
 	 * 
 	 * @param string  $email
 	 * @param boolean $strict (si true, retourne true uniquement si code 250)
@@ -275,6 +279,10 @@ class Mailer_SMTP {
 	 */
 	public function to($email, $strict = false)
 	{
+		if( !$this->fromCalled ) {
+			$this->from();
+		}
+		
 		//
 		// Code success : 250, 251
 		// Code failure : 550, 551, 552, 553, 450, 451, 452
@@ -282,14 +290,14 @@ class Mailer_SMTP {
 		//
 		$this->put(sprintf("RCPT TO:<%s>\r\n", $email));
 		
-		return ( $strict ) ? $this->checkResponse(250) : $this->checkResponse(250, 251);
+		return $strict ? $this->checkResponse(250) : $this->checkResponse(250, 251);
 	}
 	
 	public function send($email)
 	{
 		//
 		// Compatibilité Wamailer 2.x
-		// Si les en-têtes et le corps de l’email sont fournis séparément,
+		// Si les entêtes et le corps de l’email sont fournis séparément,
 		// on les concatène.
 		//
 		if( func_num_args() == 2 ) {
@@ -345,6 +353,23 @@ class Mailer_SMTP {
 		 * Code error   : 500, 421
 		 */
 		$this->put("NOOP\r\n");
+		
+		return $this->checkResponse(250);
+	}
+	
+	/**
+	 * Envoi la commande RSET
+	 * 
+	 * @access public
+	 * @return boolean
+	 */
+	public function reset()
+	{
+		/**
+		 * Code success : 250
+		 * Code error   : 500, 501, 504, 421
+		 */
+		$this->put("RSET\r\n");
 		
 		return $this->checkResponse(250);
 	}
