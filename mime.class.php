@@ -729,14 +729,7 @@ class Mime_Header {
 	public function __construct($name, $value)
 	{
 		$name  = self::validName($name);
-		
-		/**
-		 * Le contenu de l’en-tête ne doit contenir aucun retour chariot
-		 * ou saut de ligne
-		 *
-		 * @see RFC 2822#2.2
-		 */
-		$value = preg_replace('/\s+/S', ' ', trim($value));
+		$value = self::sanitizeValue($value);
 		
 		if( ($name == 'Content-Type' || $name == 'Content-Disposition') && strpos($value, ';') ) {
 			list($value, $params) = explode(';', $value, 2);
@@ -770,6 +763,22 @@ class Mime_Header {
 		}
 		
 		return str_replace(' ', '-', ucwords(str_replace('-', ' ', $name)));
+	}
+	
+	/**
+	 * Le contenu de l’en-tête ne doit contenir aucun retour chariot
+	 * ou saut de ligne
+	 *
+	 * @see RFC 2822#2.2
+	 * 
+	 * @param string $value
+	 * 
+	 * @access public
+	 * @return string
+	 */
+	public function sanitizeValue($value)
+	{
+		return preg_replace('/\s+/S', ' ', trim($value));
 	}
 	
 	/**
@@ -807,7 +816,7 @@ class Mime_Header {
 	 */
 	public function append($str)
 	{
-		$this->_value .= $str;
+		$this->_value .= self::sanitizeValue($str);
 	}
 	
 	/**
