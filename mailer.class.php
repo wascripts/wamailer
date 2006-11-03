@@ -261,22 +261,33 @@ abstract class Mailer {
 			}
 			
 			if( PHP_USE_SENDMAIL ) {
+				$headers = str_replace("\r\n", MAILER_MIME_EOL, $headers);
+				$message = str_replace("\r\n", MAILER_MIME_EOL, $message);
+				
 				/**
-				 * On ne réalise pas l’opération sur subject et recipients
-				 * car la fonction mail() ne laisse passer les long en-têtes
-				 * que si les plis sont séparés par \r\n<LWS>
+				 * PHP ne laisse passer les longs entêtes Subject et To que
+				 * si les plis sont séparés par des séquences \r\n<LWS>,
+				 * cela même sur les systèmes UNIX-like.
+				 * Cela semble poser problème avec certains serveurs POP ou IMAP
+				 * qui interprètent les retours chariots comme des sauts de ligne
+				 * et les remplacent comme tels, faussant ainsi le marquage de fin
+				 * du bloc d’entêtes de l’email.
+				 * On remplace les séquences \r\n<LWS> par une simple espace
 				 * 
 				 * @see SKIP_LONG_HEADER_SEP routine in
 				 *   http://cvs.php.net/php-src/ext/standard/mail.c
+				 * @see PHP Bug 24805 at http://bugs.php.net/bug.php?id=24805
 				 */
-				$headers = str_replace("\r\n", MAILER_MIME_EOL, $headers);
-				$message = str_replace("\r\n", MAILER_MIME_EOL, $message);
+				if( strncasecmp(PHP_OS, 'Win', 3) != 0 ) {
+					$subject = str_replace("\r\n\t", ' ', $subject);
+					$recipients = str_replace("\r\n\t", ' ', $recipients);
+				}
 			}
 			else {
 				/**
 				 * La fonction mail() utilise prioritairement la valeur de l’option
 				 * sendmail_from comme adresse à passer dans la commande MAIL FROM
-				 * (adresse qui sera utilisée par le serveur SMTP pour forger l’en-tête
+				 * (adresse qui sera utilisée par le serveur SMTP pour forger l’entête
 				 * Return-Path). On donne la valeur de $rPath à l’option sendmail_from
 				 */
 				if( !is_null($rPath) ) {
@@ -284,9 +295,9 @@ abstract class Mailer {
 				}
 				
 				/**
-				 * La fonction mail() va parser elle-même les en-têtes Cc et Bcc
+				 * La fonction mail() va parser elle-même les entêtes Cc et Bcc
 				 * pour passer les adresses destinataires au serveur SMTP.
-				 * Il est donc indispensable de nettoyer l’en-tête Cc de toute
+				 * Il est donc indispensable de nettoyer l’entête Cc de toute
 				 * personnalisation sous peine d’obtenir une erreur.
 				 */
 				$header_cc = $email->headers->get('Cc');
