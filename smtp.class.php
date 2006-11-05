@@ -301,7 +301,8 @@ class Mailer_SMTP {
 		// on les concatène.
 		//
 		if( func_num_args() == 2 ) {
-			$email .= "\r\n" . func_get_arg(1);
+			$email  = rtrim($email);
+			$email .= "\r\n\r\n" . func_get_arg(1);
 		}
 		
 		$email = preg_replace('/\r\n?|\n/', "\r\n", $email);
