@@ -402,23 +402,23 @@ class Mime_Part {
 			$this->headers->set('Content-Type', 'application/octet-stream');
 		}
 		
-		$message = $this->body;
+		$body = $this->body;
 		
 		if( $this->isMultiPart() ) {
 			$this->boundary = '--=_Part_' . md5(microtime());
 			$this->headers->get('Content-Type')->param('boundary', $this->boundary);
 			
-			if( $message != '' ) {
-				$message .= "\r\n\r\n";
+			if( $body != '' ) {
+				$body .= "\r\n\r\n";
 			}
 			
 			foreach( $this->subparts as $subpart ) {
-				$message .= '--' . $this->boundary . "\r\n";
-				$message .= !is_string($subpart) ? $subpart->__toString() : $subpart;
-				$message .= "\r\n";
+				$body .= '--' . $this->boundary . "\r\n";
+				$body .= !is_string($subpart) ? $subpart->__toString() : $subpart;
+				$body .= "\r\n";
 			}
 			
-			$message .= '--' . $this->boundary . "--\r\n";
+			$body .= '--' . $this->boundary . "--\r\n";
 		}
 		else {
 			if( $encoding = $this->headers->get('Content-Transfer-Encoding') ) {
@@ -437,7 +437,7 @@ class Mime_Part {
 					 * 
 					 * @see RFC 2045#6.7
 					 */
-					$message = Mime::quotedPrintableEncode($message);
+					$body = Mime::quotedPrintableEncode($body);
 					break;
 				case 'base64':
 					/**
@@ -445,11 +445,11 @@ class Mime_Part {
 					 * 
 					 * @see RFC 2045#6.8
 					 */
-					$message = rtrim(chunk_split(base64_encode($message)));
+					$body = rtrim(chunk_split(base64_encode($body)));
 					break;
 				case '7bit':
 				case '8bit':
-					$message = preg_replace("/\r\n?|\n/", "\r\n", $message);
+					$body = preg_replace("/\r\n?|\n/", "\r\n", $body);
 					
 					/**
 					 * Limitation sur les longueurs des lignes de texte.
@@ -459,12 +459,12 @@ class Mime_Part {
 					 * 
 					 * @see RFC 2822#2.1.1
 					 */
-					$message = Mime::wordwrap($message, $this->wraptext ? 78 : 998);
+					$body = Mime::wordwrap($body, $this->wraptext ? 78 : 998);
 					break;
 			}
 		}
 		
-		return $this->headers->__toString() . "\r\n" . $message;
+		return $this->headers->__toString() . "\r\n" . $body;
 	}
 	
 	private function __set($name, $value)
@@ -494,9 +494,9 @@ class Mime_Part {
 	{
 		$this->headers = clone $this->headers;
 		
-		if( is_array($this->body) ) {
-			foreach( $this->body as &$body ) {
-				$body = clone $body;
+		if( is_array($this->subparts) ) {
+			foreach( $this->subparts as &$subpart ) {
+				$subpart = clone $subpart;
 			}
 		}
 	}
