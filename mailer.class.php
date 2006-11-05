@@ -965,8 +965,7 @@ class Email {
 		}
 		
 		// filtrage nécessaire après la boucle de traitement des objets embarqués plus haut
-		$attachParts = array_filter($attachParts,
-			create_function('$var', 'return !is_null($var);'));
+		$attachParts = array_filter($attachParts);
 		
 		if( count($attachParts) > 0 ) {
 			if( !is_null($rootPart) ) {
