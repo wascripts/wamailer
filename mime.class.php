@@ -718,6 +718,16 @@ class Mime_Header {
 	private $params = array();
 	
 	/**
+	 * Active/Désactive le pliage des entêtes tel que décrit dans la RFC 2822
+	 * 
+	 * @see RFC 2822#2.2.3 Long Header Fields
+	 * 
+	 * @var boolean
+	 * @access public
+	 */
+	public $folding = true;
+	
+	/**
 	 * Constructeur de classe
 	 * 
 	 * @param string $name   Nom de l’en-tête
@@ -879,7 +889,13 @@ class Mime_Header {
 			$value .= sprintf('; %s=%s', $pName, $pValue);
 		}
 		
-		return wordwrap(sprintf('%s: %s', $this->_name, $value), 77, "\r\n\t");
+		$value = sprintf('%s: %s', $this->_name, $value);
+		
+		if( $this->folding ) {
+			$value = wordwrap($value, 77, "\r\n\t");
+		}
+		
+		return $value;
 	}
 	
 	private function __get($name)
