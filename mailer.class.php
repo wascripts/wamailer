@@ -37,11 +37,8 @@ if( !defined('DATE_RFC2822') ) {
 	define('DATE_RFC2822', 'D, d M Y H:i:s O');
 }
 
-if( isset($_SERVER['SERVER_NAME']) ) {
-	$hostname = $_SERVER['SERVER_NAME'];
-}
-else if( !($hostname = @php_uname('n')) ) {
-	$hostname = 'localhost';
+if( !($hostname = @php_uname('n')) ) {
+	$hostname = isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost';
 }
 
 define('MAILER_HOSTNAME',  $hostname);
@@ -182,7 +179,7 @@ abstract class Mailer {
 	 */
 	public static function send(Email $email)
 	{
-		$email->headers->set('X-Mailer', sprintf('Wamailer/%.1f', self::VERSION));
+		$email->headers->set('X-Mailer', sprintf('Wamailer/%s', self::VERSION));
 		
 		$rPath = $email->headers->get('Return-Path');
 		if( !is_null($rPath) ) {

@@ -116,11 +116,9 @@ class Mailer_SMTP {
 			}
 		}
 		
-		if( isset($_SERVER['SERVER_NAME']) ) {
-			$domain = $_SERVER['SERVER_NAME'];
-		}
-		else if( !($domain = @php_uname('n')) ) {
-			$domain = 'localhost';
+		if( !($hostname = @php_uname('n')) ) {
+			$hostname = isset($_SERVER['SERVER_NAME']) ?
+				$_SERVER['SERVER_NAME'] : 'localhost';
 		}
 		
 		$this->_responseCode = null;
@@ -148,9 +146,9 @@ class Mailer_SMTP {
 		// Code success : 250
 		// Code error   : 500, 501, 504, 421
 		//
-		$this->put(sprintf("EHLO %s\r\n", $domain));
+		$this->put(sprintf("EHLO %s\r\n", $hostname));
 		if( !$this->checkResponse(250) ) {
-			$this->put(sprintf("HELO %s\r\n", $domain));
+			$this->put(sprintf("HELO %s\r\n", $hostname));
 			if( !$this->checkResponse(250) ) {
 				return false;
 			}
