@@ -467,14 +467,14 @@ class Mime_Part {
 		return $this->headers->__toString() . "\r\n" . $body;
 	}
 	
-	private function __set($name, $value)
+	public function __set($name, $value)
 	{
 		if( $name == 'encoding' ) {
 			$this->headers->set('Content-Transfer-Encoding', $value);
 		}
 	}
 	
-	private function __get($name)
+	public function __get($name)
 	{
 		$value = null;
 		
@@ -898,7 +898,7 @@ class Mime_Header {
 		return $value;
 	}
 	
-	private function __get($name)
+	public function __get($name)
 	{
 		$value = null;
 		

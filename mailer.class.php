@@ -1002,7 +1002,7 @@ class Email {
 		return $this->headers_txt . $this->message_txt;
 	}
 	
-	private function __set($name, $value)
+	public function __set($name, $value)
 	{
 		switch( $name ) {
 			case 'headers':
@@ -1013,7 +1013,7 @@ class Email {
 		}
 	}
 	
-	private function __get($name)
+	public function __get($name)
 	{
 		switch( $name ) {
 			case 'headers':
