@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2002-2006 Aurélien Maille
+ * Copyright (c) 2002-2010 Aurélien Maille
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -92,7 +92,7 @@ class Mime {
 					$i--;
 				}
 				
-				while( $line{$i-1} == '=' || $line{$i-2} == '=' ) {
+				while( $line[$i-1] == '=' || $line[$i-2] == '=' ) {
 					$tmplen--;
 					$i--;
 				}
@@ -196,7 +196,7 @@ class Mime {
 					 * @see RFC 2047#5
 					 */
 					for( $i = min(($pos + $tmplen), $strlen), $c = 1; $i > $pos; $i--, $c++ ) {
-						$d = ord($value{$i-1});
+						$d = ord($value[$i-1]);
 						
 						reset(self::$_utf8test);
 						for( $m = 1; $m <= 6; $m++ ) {
