@@ -21,7 +21,7 @@ Installation
   
   $email = new Email();
   $email->setFrom('my@domain.example', 'MyName');
-  $email->addRecipient('other@domain.example');
+  $email->addRecipient('other@domain.tld');
   $email->setSubject('This is the subject');
   $email->setTextBody('This is the body of mail');
   
