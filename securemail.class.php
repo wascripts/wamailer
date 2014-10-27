@@ -1,27 +1,11 @@
 <?php
 /**
- * Copyright (c) 2006-10 Aurélien Maille
- * 
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * 
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
- * @package Wamailer
- * @author  Bobe <wascripts@phpcodeur.net>
- * @link    http://phpcodeur.net/wascripts/wamailer/
- * @license http://www.gnu.org/copyleft/lesser.html
- * @version $Id$
- * 
+ * @package   Wamailer
+ * @author    Bobe <wascripts@phpcodeur.net>
+ * @link      http://phpcodeur.net/wascripts/wamailer/
+ * @copyright 2002-2014 Aurélien Maille
+ * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
+ *
  * @see RFC 1847 - Security Multiparts for MIME: Multipart/Signed and Multipart/Encrypted
  * @see RFC 3156 - MIME Security with OpenPGP
  * 
@@ -42,7 +26,6 @@ class SecureMail extends Email {
 	 * ou le répertoire ~/.gnupg
 	 * 
 	 * @var string
-	 * @access public
 	 */
 	public $homedir     = null;
 	
@@ -67,12 +50,9 @@ class SecureMail extends Email {
 	 * Si $secretkey n’est pas spécifié, GnuPG utilisera la clé par défaut
 	 * spécifiée dans le fichier gpg.conf.
 	 * 
-	 * @param string $secretkey   Identifiant de la clé ou le nom ou adresse
-	 *                            email correspondant à la clé voulue
-	 * @param string $passphrase  passphrase pour dévérouiller la clé
-	 * 
-	 * @access public
-	 * @return void
+	 * @param string $secretkey  Identifiant de la clé ou le nom ou adresse
+	 *                           email correspondant à la clé voulue
+	 * @param string $passphrase passphrase pour dévérouiller la clé
 	 */
 	public function sign($secretkey = null, $passphrase = null)
 	{
@@ -86,16 +66,13 @@ class SecureMail extends Email {
 	 * Si le type de chiffrement ($encryption) n’est pas spécifié,
 	 * le script utilisera le chiffrement asymétrique.
 	 * 
-	 * @param mixed   $data        Dépend du type de chiffrement choisi.
+	 * @param mixed   $data       Dépend du type de chiffrement choisi.
 	 *   - Si le chiffrement asymétrique est utilisé, correspondant à
 	 *     l’identifiant du destinataire.
 	 *   - Si le chiffrement symétrique est utilisé, correspondant au
 	 *     passphrase permettant le déchiffrement du message.
-	 * @param integer $encryption  Type de chiffrement. Peut valoir
-	 *                             self::A_ENCRYPTION ou self::S_ENCRYPTION
-	 * 
-	 * @access public
-	 * @return void
+	 * @param integer $encryption Type de chiffrement. Peut valoir
+	 *                            self::A_ENCRYPTION ou self::S_ENCRYPTION
 	 */
 	public function encrypt($data, $encryption = null)
 	{
@@ -120,10 +97,6 @@ class SecureMail extends Email {
 		}
 	}
 	
-	/**
-	 * @access public
-	 * @return void
-	 */
 	public function initialize()
 	{
 		$this->_sign      = false;
@@ -138,8 +111,7 @@ class SecureMail extends Email {
 	/**
 	 * Surcharge la méthode __toString() de la classe parente.
 	 * Signe et/ou chiffre l’email résultant à l’aide du programme GnuPG.
-	 * 
-	 * @access public
+	 *
 	 * @return string
 	 */
 	public function __toString()

@@ -1,26 +1,10 @@
 <?php
 /**
- * Copyright (c) 2002-2010 Aurélien Maille
- * 
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * 
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
- * @package Wamailer
- * @author  Bobe <wascripts@phpcodeur.net>
- * @link    http://phpcodeur.net/wascripts/wamailer/
- * @license http://www.gnu.org/copyleft/lesser.html
- * @version $Id$
+ * @package   Wamailer
+ * @author    Bobe <wascripts@phpcodeur.net>
+ * @link      http://phpcodeur.net/wascripts/wamailer/
+ * @copyright 2002-2014 Aurélien Maille
+ * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
  */
 
 require dirname(__FILE__) . '/mime.class.php';
@@ -73,7 +57,6 @@ abstract class Mailer {
 	 * Activation du mode sendmail
 	 * 
 	 * @var boolean
-	 * @access private
 	 */
 	private static $sendmail_mode = false;
 	
@@ -85,7 +68,6 @@ abstract class Mailer {
 	 * un caractère point comme la fin du message.
 	 * 
 	 * @var string
-	 * @access public
 	 */
 	public static $sendmail_cmd  = '/usr/sbin/sendmail -t -i';
 	
@@ -95,7 +77,6 @@ abstract class Mailer {
 	 * Activation du mode SMTP
 	 * 
 	 * @var boolean
-	 * @access private
 	 */
 	private static $smtp_mode = false;
 	
@@ -103,18 +84,13 @@ abstract class Mailer {
 	 * Serveur SMTP à contacter
 	 * 
 	 * @var string
-	 * @access public
 	 */
 	public static $smtp_server = 'localhost';
 	
 	/**
 	 * Active ou désactive l’utilisation directe de sendmail pour l’envoi des emails
 	 * 
-	 * @param boolean $use  Active/désactive le mode sendmail
-	 * 
-	 * @static
-	 * @access public
-	 * @return void
+	 * @param boolean $use Active/désactive le mode sendmail
 	 */
 	public static function useSendmail($use)
 	{
@@ -124,11 +100,7 @@ abstract class Mailer {
 	/**
 	 * Active ou désactive l’utilisation directe d’un serveur SMTP pour l’envoi des emails
 	 * 
-	 * @param boolean $use  Active/désactive le mode SMTP
-	 * 
-	 * @static
-	 * @access public
-	 * @return void
+	 * @param boolean $use Active/désactive le mode SMTP
 	 */
 	public static function useSMTP($use)
 	{
@@ -139,9 +111,7 @@ abstract class Mailer {
 	 * Vérifie la validité syntaxique d'un email
 	 * 
 	 * @param string $email
-	 * 
-	 * @static
-	 * @access public
+	 *
 	 * @return boolean
 	 */
 	public static function checkMailSyntax($email)
@@ -155,9 +125,7 @@ abstract class Mailer {
 	 * personnalisation ('My name' <my@address.tld>)
 	 * 
 	 * @param string $addressList
-	 * 
-	 * @static
-	 * @access public
+	 *
 	 * @return array
 	 */
 	public static function clearAddressList($addressList)
@@ -171,10 +139,8 @@ abstract class Mailer {
 	/**
 	 * Envoi d’un email
 	 * 
-	 * @param Email object $email
-	 * 
-	 * @static
-	 * @access public
+	 * @param Email $email
+	 *
 	 * @return boolean
 	 */
 	public static function send(Email $email)
@@ -324,11 +290,10 @@ abstract class Mailer {
 	/**
 	 * Envoi via sendmail
 	 * 
-	 * @param string $email       Email à envoyer
-	 * @param string $recipients  Adresses supplémentaires de destinataires
-	 * @param string $rPath       Adresse d’envoi (définit le return-path)
+	 * @param string $email      Email à envoyer
+	 * @param string $recipients Adresses supplémentaires de destinataires
+	 * @param string $rPath      Adresse d’envoi (définit le return-path)
 	 * 
-	 * @access public
 	 * @return boolean
 	 */
 	public static function sendmail($email, $recipients = null, $rPath = null)
@@ -369,11 +334,10 @@ abstract class Mailer {
 	/**
 	 * Envoi via la classe smtp
 	 * 
-	 * @param string $email       Email à envoyer
-	 * @param string $recipients  Adresses des destinataires
-	 * @param string $rPath       Adresse d’envoi (définit le return-path)
-	 * 
-	 * @access public
+	 * @param string $email      Email à envoyer
+	 * @param string $recipients Adresses des destinataires
+	 * @param string $rPath      Adresse d’envoi (définit le return-path)
+	 *
 	 * @return boolean
 	 */
 	public static function smtpmail($email, $recipients, $rPath = null)
@@ -435,7 +399,6 @@ class Email {
 	 * Email du destinataire
 	 * 
 	 * @var string
-	 * @access protected
 	 */
 	protected $sender = '';
 	
@@ -444,34 +407,27 @@ class Email {
 	 * ultérieurement définis pour des sous-ensembles de l’email)
 	 * 
 	 * @var string
-	 * @access public
 	 */
 	public $charset = 'ISO-8859-1';
 	
 	/**
 	 * Bloc d’en-têtes de l’email
 	 * 
-	 * @var object
-	 * @see Mime_Headers class
-	 * @access protected
+	 * @var Mime_Headers
 	 */
 	protected $_headers = null;
 	
 	/**
 	 * Partie texte brut de l’email
 	 * 
-	 * @var object
-	 * @see Mime_Part class
-	 * @access protected
+	 * @var Mime_Part
 	 */
 	protected $_textPart = null;
 	
 	/**
 	 * Partie HTML de l’email
 	 * 
-	 * @var object
-	 * @see Mime_Part class
-	 * @access protected
+	 * @var Mime_Part
 	 */
 	protected $_htmlPart = null;
 	
@@ -479,27 +435,21 @@ class Email {
 	 * Multi-Partie globale de l’email
 	 * 
 	 * @var array
-	 * @access protected
 	 */
 	protected $_attachParts = array();
 	
 	/**
 	 * @var string
-	 * @access protected
 	 */
 	protected $headers_txt = '';
 	
 	/**
 	 * @var string
-	 * @access protected
 	 */
 	protected $message_txt = '';
 	
 	/**
 	 * Constructeur de classe
-	 * 
-	 * @access public
-	 * @return void
 	 */
 	public function __construct($charset = null)
 	{
@@ -528,7 +478,6 @@ class Email {
 	 * @param string  $filename
 	 * @param boolean $fullParse
 	 * 
-	 * @access public
 	 * @return mixed
 	 */
 	public function load($filename, $fullParse = false)
@@ -606,9 +555,6 @@ class Email {
 	 * Sauvegarde l’email dans un fichier
 	 * 
 	 * @param string $filename
-	 * 
-	 * @access public
-	 * @return void
 	 */
 	public function save($filename)
 	{
@@ -620,11 +566,8 @@ class Email {
 	}
 	
 	/**
-	 * @param string $email  Email de l’expéditeur
-	 * @param string $name   Personnalisation du nom de l’expéditeur
-	 * 
-	 * @access public
-	 * @return void
+	 * @param string $email Email de l’expéditeur
+	 * @param string $name  Personnalisation du nom de l’expéditeur
 	 */
 	public function setFrom($email, $name = null)
 	{
@@ -639,11 +582,8 @@ class Email {
 	}
 	
 	/**
-	 * @param string $email  Email du destinataire ou tableau contenant la liste des destinataires
-	 * @param string $name   Personnalisation du nom du destinataire
-	 * 
-	 * @access public
-	 * @return void
+	 * @param string $email Email du destinataire ou tableau contenant la liste des destinataires
+	 * @param string $name  Personnalisation du nom du destinataire
 	 */
 	public function addRecipient($email, $name = null)
 	{
@@ -651,11 +591,8 @@ class Email {
 	}
 	
 	/**
-	 * @param string $email  Email du destinataire ou tableau contenant la liste des destinataires
-	 * @param string $name   Personnalisation du nom du destinataire
-	 * 
-	 * @access public
-	 * @return void
+	 * @param string $email Email du destinataire ou tableau contenant la liste des destinataires
+	 * @param string $name  Personnalisation du nom du destinataire
 	 */
 	public function addCCRecipient($email, $name = null)
 	{
@@ -663,10 +600,7 @@ class Email {
 	}
 	
 	/**
-	 * @param string $email  Email du destinataire ou tableau contenant la liste des destinataires
-	 * 
-	 * @access public
-	 * @return void
+	 * @param string $email Email du destinataire ou tableau contenant la liste des destinataires
 	 */
 	public function addBCCRecipient($email)
 	{
@@ -674,12 +608,9 @@ class Email {
 	}
 	
 	/**
-	 * @param string $email   Email du destinataire ou tableau contenant la liste des destinataires
-	 * @param string $name    Personnalisation du nom du destinataire
-	 * @param string $header  Nom de l’en-tête concerné (parmi To, Cc et Bcc)
-	 * 
-	 * @access private
-	 * @return void
+	 * @param string $email  Email du destinataire ou tableau contenant la liste des destinataires
+	 * @param string $name   Personnalisation du nom du destinataire
+	 * @param string $header Nom de l’en-tête concerné (parmi To, Cc et Bcc)
 	 */
 	private function _addRecipient($email, $name, $header)
 	{
@@ -699,11 +630,8 @@ class Email {
 	}
 	
 	/**
-	 * @param string $email  email de réponse
-	 * @param string $name   Personnalisation
-	 * 
-	 * @access public
-	 * @return void
+	 * @param string $email Email de réponse
+	 * @param string $name  Personnalisation
 	 */
 	public function setReplyTo($email = null, $name = null)
 	{
@@ -723,11 +651,8 @@ class Email {
 	}
 	
 	/**
-	 * @param string $email  email pour la notification de lecture (par défaut,
-	 *                       l’adresse d’expéditeur est utilisée)
-	 * 
-	 * @access public
-	 * @return void
+	 * @param string $email email pour la notification de lecture (par défaut,
+	 *                      l’adresse d’expéditeur est utilisée)
 	 */
 	public function setNotify($email = null)
 	{
@@ -740,11 +665,8 @@ class Email {
 	/**
 	 * Définition de l’adresse de retour pour les emails d’erreurs
 	 * 
-	 * @param string $email  mail de retour d’erreur (par défaut, l’adresse
-	 *                       d’expéditeur est utilisée)
-	 * 
-	 * @access public
-	 * @return void
+	 * @param string $email mail de retour d’erreur (par défaut, l’adresse
+	 *                      d’expéditeur est utilisée)
 	 */
 	public function setReturnPath($email = null)
 	{
@@ -757,10 +679,7 @@ class Email {
 	/**
 	 * Définition du niveau de priorité de l’email
 	 * 
-	 * @param integer $priority  Niveau de priorité de l’email
-	 * 
-	 * @access public
-	 * @return void
+	 * @param integer $priority Niveau de priorité de l’email
 	 */
 	public function setPriority($priority)
 	{
@@ -770,10 +689,7 @@ class Email {
 	}
 	
 	/**
-	 * @param string $str  Nom de l’organisation/entreprise/etc émettrice
-	 * 
-	 * @access public
-	 * @return void
+	 * @param string $str Nom de l’organisation/entreprise/etc émettrice
 	 */
 	public function organization($str)
 	{
@@ -782,10 +698,7 @@ class Email {
 	}
 	
 	/**
-	 * @param string $subject  Le sujet de l’email
-	 * 
-	 * @access public
-	 * @return void
+	 * @param string $subject Le sujet de l’email
 	 */
 	public function setSubject($subject)
 	{
@@ -794,10 +707,9 @@ class Email {
 	}
 	
 	/**
-	 * @param string $message  Le message de l’email en texte brut
-	 * @param string $charset  Jeu de caractères de la chaîne contenue dans $message
-	 * 
-	 * @access public
+	 * @param string $message Le message de l’email en texte brut
+	 * @param string $charset Jeu de caractères de la chaîne contenue dans $message
+	 *
 	 * @return Mime_Part
 	 */
 	public function setTextBody($message, $charset = null)
@@ -816,10 +728,9 @@ class Email {
 	}
 	
 	/**
-	 * @param string $message  Le message de l’email au format HTML
-	 * @param string $charset  Jeu de caractères de la chaîne contenue dans $message
-	 * 
-	 * @access public
+	 * @param string $message Le message de l’email au format HTML
+	 * @param string $charset Jeu de caractères de la chaîne contenue dans $message
+	 *
 	 * @return Mime_Part
 	 */
 	public function setHTMLBody($message, $charset = null)
@@ -840,12 +751,11 @@ class Email {
 	/**
 	 * Attache un fichier comme pièce jointe de l’email
 	 * 
-	 * @param string $filename     Chemin vers le fichier
-	 * @param string $name         Nom de fichier
-	 * @param string $type         Type MIME du fichier
-	 * @param string $disposition  Disposition
-	 * 
-	 * @access public
+	 * @param string $filename    Chemin vers le fichier
+	 * @param string $name        Nom de fichier
+	 * @param string $type        Type MIME du fichier
+	 * @param string $disposition Disposition
+	 *
 	 * @return Mime_Part
 	 */
 	public function attach($filename, $name = '', $type = '', $disposition = '')
@@ -868,12 +778,11 @@ class Email {
 	/**
 	 * Attache un contenu comme pièce jointe de l’email
 	 * 
-	 * @param string $data         Données à joindre
-	 * @param string $name         Nom de fichier
-	 * @param string $type         Type MIME des données
-	 * @param string $disposition  Disposition
-	 * 
-	 * @access public
+	 * @param string $data        Données à joindre
+	 * @param string $name        Nom de fichier
+	 * @param string $type        Type MIME des données
+	 * @param string $disposition Disposition
+	 *
 	 * @return Mime_Part
 	 */
 	public function attachFromString($data, $name, $type = 'application/octet-stream', $disposition = '')
@@ -899,8 +808,7 @@ class Email {
 	
 	/**
 	 * Retourne l’email sous forme de chaîne formatée prète à l’envoi
-	 * 
-	 * @access public
+	 *
 	 * @return string
 	 */
 	public function __toString()

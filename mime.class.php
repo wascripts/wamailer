@@ -1,27 +1,11 @@
 <?php
 /**
- * Copyright (c) 2002-2010 Aurélien Maille
- * 
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * 
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
- * @package Wamailer
- * @author  Bobe <wascripts@phpcodeur.net>
- * @link    http://phpcodeur.net/wascripts/wamailer/
- * @license http://www.gnu.org/copyleft/lesser.html
- * @version $Id$
- * 
+ * @package   Wamailer
+ * @author    Bobe <wascripts@phpcodeur.net>
+ * @link      http://phpcodeur.net/wascripts/wamailer/
+ * @copyright 2002-2014 Aurélien Maille
+ * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
+ *
  * @see RFC 2045 - Multipurpose Internet Mail Extensions (MIME) Part One: Format of Internet Message Bodies
  * @see RFC 2046 - Multipurpose Internet Mail Extensions (MIME) Part Two: Media Types
  * @see RFC 2047 - Multipurpose Internet Mail Extensions (MIME) Part Three: Message Header Extensions for Non-ASCII Text
@@ -44,10 +28,8 @@ class Mime {
 	/**
 	 * Utilisé dans la méthode Mime::encodeHeader() pour détecter
 	 * si un octet donné est le début d’une séquence d’octets utf-8
-	 * 
-	 * @static
+	 *
 	 * @var array
-	 * @access private
 	 */
 	private static $_utf8test = array(
 		0x80 => 0, 0xE0 => 0xC0, 0xF0 => 0xE0, 0xF8 => 0xF0, 0xFC => 0xF8, 0xFE => 0xFC
@@ -59,9 +41,7 @@ class Mime {
 	 * @see RFC 2045 (sec. 6.7)
 	 * 
 	 * @param string $str
-	 * 
-	 * @static
-	 * @access public
+	 *
 	 * @return string
 	 */
 	public static function quotedPrintableEncode($str)
@@ -112,13 +92,11 @@ class Mime {
 	 * Autrement, des guillemets peuvent néanmoins être ajoutés aux extrémités
 	 * si des caractères interdits pour le token considéré sont présents.
 	 * 
-	 * @param string $header   Nom de l’en-tête concerné
-	 * @param string $header   Valeur d’en-tête à encoder
-	 * @param string $charset  Jeu de caractères utilisé
+	 * @param string $header  Nom de l’en-tête concerné
+	 * @param string $header  Valeur d’en-tête à encoder
+	 * @param string $charset Jeu de caractères utilisé
 	 * @param string $token
-	 * 
-	 * @static
-	 * @access public
+	 *
 	 * @return string
 	 */
 	public static function encodeHeader($name, $value, $charset, $token = 'text')
@@ -238,9 +216,7 @@ class Mime {
 	/**
 	 * @param string  $str
 	 * @param integer $maxlen
-	 * 
-	 * @static
-	 * @access public
+	 *
 	 * @return string
 	 */
 	public static function wordwrap($str, $maxlen = 78)
@@ -258,9 +234,7 @@ class Mime {
 	
 	/**
 	 * @param string $filename
-	 * 
-	 * @static
-	 * @access public
+	 *
 	 * @return string
 	 */
 	public static function getType($filename)
@@ -303,9 +277,7 @@ class Mime_Part {
 	/**
 	 * Bloc d’en-têtes de cette partie
 	 * 
-	 * @var object
-	 * @see Mime_Headers class
-	 * @access public
+	 * @var Mime_Headers
 	 */
 	public $headers   = null;
 	
@@ -313,7 +285,6 @@ class Mime_Part {
 	 * Contenu de cette partie
 	 * 
 	 * @var mixed
-	 * @access public
 	 */
 	public $body      = null;
 	
@@ -321,7 +292,6 @@ class Mime_Part {
 	 * tableau des éventuelles sous-parties
 	 * 
 	 * @var mixed
-	 * @access public
 	 */
 	private $subparts = array();
 	
@@ -329,7 +299,6 @@ class Mime_Part {
 	 * Frontière de séparation entre les différentes sous-parties
 	 * 
 	 * @var string
-	 * @access private
 	 */
 	private $boundary  = null;
 	
@@ -341,7 +310,6 @@ class Mime_Part {
 	 * octets + CRLF
 	 * 
 	 * @var boolean
-	 * @access public
 	 */
 	public $wraptext  = true;
 	
@@ -349,9 +317,6 @@ class Mime_Part {
 	 * Constructeur de classe
 	 * 
 	 * @param string $body
-	 * 
-	 * @access public
-	 * @return void
 	 */
 	public function __construct($body = null, $headers = null)
 	{
@@ -365,11 +330,8 @@ class Mime_Part {
 	/**
 	 * Ajout de sous-partie(s) à ce bloc MIME
 	 * 
-	 * @param mixed $subpart  Peut être un objet Mime_Part, un tableau
-	 *                        d’objets Mime_Part, ou simplement une chaîne
-	 * 
-	 * @access public
-	 * @return void
+	 * @param mixed $subpart Peut être un objet Mime_Part, un tableau
+	 *                       d’objets Mime_Part, ou simplement une chaîne
 	 */
 	public function addSubPart($subpart)
 	{
@@ -383,8 +345,7 @@ class Mime_Part {
 	
 	/**
 	 * Indique si ce bloc MIME contient des sous-parties
-	 * 
-	 * @access public
+	 *
 	 * @return boolean
 	 */
 	public function isMultiPart()
@@ -393,7 +354,6 @@ class Mime_Part {
 	}
 	
 	/**
-	 * @access public
 	 * @return string
 	 */
 	public function __toString()
@@ -508,7 +468,6 @@ class Mime_Headers implements Iterator {
 	 * Tableau d’en-têtes
 	 * 
 	 * @var array
-	 * @access private
 	 */
 	private $headers = array();
 	
@@ -519,10 +478,7 @@ class Mime_Headers implements Iterator {
 	/**
 	 * Constructeur de classe
 	 * 
-	 * @param array $headers  Tableau d’en-têtes d’email à ajouter dans l’objet
-	 * 
-	 * @access public
-	 * @return void
+	 * @param array $headers Tableau d’en-têtes d’email à ajouter dans l’objet
 	 */
 	public function __construct($headers = null)
 	{
@@ -536,10 +492,9 @@ class Mime_Headers implements Iterator {
 	/**
 	 * Ajout d’un en-tête
 	 * 
-	 * @param string $name   Nom de l’en-tête 
-	 * @param string $value  Valeur de l’en-tête
-	 * 
-	 * @access public
+	 * @param string $name  Nom de l’en-tête 
+	 * @param string $value Valeur de l’en-tête
+	 *
 	 * @return Mime_Header
 	 */
 	public function add($name, $value)
@@ -565,10 +520,9 @@ class Mime_Headers implements Iterator {
 	 * Ajout d’un en-tête, en écrasant si besoin la valeur précédemment affectée
 	 * à l’en-tête de même nom
 	 * 
-	 * @param string $name   Nom de l’en-tête
-	 * @param string $value  Valeur de l’en-tête
-	 * 
-	 * @access public
+	 * @param string $name  Nom de l’en-tête
+	 * @param string $value Valeur de l’en-tête
+	 *
 	 * @return Mime_Header
 	 */
 	public function set($name, $value)
@@ -582,9 +536,8 @@ class Mime_Headers implements Iterator {
 	/**
 	 * Retourne l’objet Mime_Header ou un tableau d’objets correspondant au nom d’en-tête donné
 	 * 
-	 * @param string $name  Nom de l’en-tête
-	 * 
-	 * @access public
+	 * @param string $name Nom de l’en-tête
+	 *
 	 * @return mixed
 	 */
 	public function get($name)
@@ -602,10 +555,7 @@ class Mime_Headers implements Iterator {
 	/**
 	 * Supprime le ou les en-têtes correspondants au nom d’en-tête donné dans $name
 	 * 
-	 * @param string $name  Nom de l’en-tête
-	 * 
-	 * @access public
-	 * @return void
+	 * @param string $name Nom de l’en-tête
 	 */
 	public function remove($name)
 	{
@@ -653,8 +603,7 @@ class Mime_Headers implements Iterator {
 	
 	/**
 	 * Retourne le bloc d’en-têtes sous forme de chaîne
-	 * 
-	 * @access public
+	 *
 	 * @return string
 	 */
 	public function __toString()
@@ -697,7 +646,6 @@ class Mime_Header {
 	 * Nom de l’en-tête
 	 * 
 	 * @var string
-	 * @access private
 	 */
 	private $_name;
 	
@@ -705,7 +653,6 @@ class Mime_Header {
 	 * Valeur de l’en-tête
 	 * 
 	 * @var string
-	 * @access private
 	 */
 	private $_value;
 	
@@ -713,7 +660,6 @@ class Mime_Header {
 	 * Liste des paramètres associés à la valeur de cet en-tête
 	 * 
 	 * @var array
-	 * @access private
 	 */
 	private $params = array();
 	
@@ -723,18 +669,14 @@ class Mime_Header {
 	 * @see RFC 2822#2.2.3 Long Header Fields
 	 * 
 	 * @var boolean
-	 * @access public
 	 */
 	public $folding = true;
 	
 	/**
 	 * Constructeur de classe
 	 * 
-	 * @param string $name   Nom de l’en-tête
-	 * @param string $value  Valeur de l’en-tête
-	 * 
-	 * @access public
-	 * @return void
+	 * @param string $name  Nom de l’en-tête
+	 * @param string $value Valeur de l’en-tête
 	 */
 	public function __construct($name, $value)
 	{
@@ -762,8 +704,7 @@ class Mime_Header {
 	 * @see RFC 2822#2.2
 	 * 
 	 * @param string $name
-	 * 
-	 * @access public
+	 *
 	 * @return string
 	 */
 	public function validName($name)
@@ -782,8 +723,7 @@ class Mime_Header {
 	 * @see RFC 2822#2.2
 	 * 
 	 * @param string $value
-	 * 
-	 * @access public
+	 *
 	 * @return string
 	 */
 	public function sanitizeValue($value)
@@ -820,9 +760,6 @@ class Mime_Header {
 	 * Complète la valeur de l’en-tête
 	 * 
 	 * @param string $str
-	 * 
-	 * @access public
-	 * @return void
 	 */
 	public function append($str)
 	{
@@ -832,10 +769,9 @@ class Mime_Header {
 	/**
 	 * Ajoute un paramètre à l’en-tête
 	 * 
-	 * @param string $name   Nom du paramètre
-	 * @param string $value  Valeur du paramètre
-	 * 
-	 * @access public
+	 * @param string $name  Nom du paramètre
+	 * @param string $value Valeur du paramètre
+	 *
 	 * @return string
 	 */
 	public function param($name, $value = null)
@@ -857,8 +793,7 @@ class Mime_Header {
 	
 	/**
 	 * Renvoie l’en-tête sous forme de chaîne formatée
-	 * 
-	 * @access public
+	 *
 	 * @return string
 	 */
 	public function __toString()

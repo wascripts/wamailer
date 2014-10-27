@@ -1,32 +1,16 @@
 <?php
 /**
- * Copyright (c) 2002-2010 Aurélien Maille
- * 
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * 
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
- * @package Wamailer
- * @author  Bobe <wascripts@phpcodeur.net>
- * @link    http://phpcodeur.net/wascripts/wamailer/
- * @license http://www.gnu.org/copyleft/lesser.html
- * @version $Id$
- * 
+ * @package   Wamailer
+ * @author    Bobe <wascripts@phpcodeur.net>
+ * @link      http://phpcodeur.net/wascripts/wamailer/
+ * @copyright 2002-2014 Aurélien Maille
+ * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
+ *
  * @see RFC 2821 - Simple Mail Transfer Protocol
  * @see RFC 2554 - SMTP Service Extension for Authentication
- * 
+ *
  * Les sources qui m'ont bien aidées :
- * 
+ *
  * @link http://abcdrfc.free.fr/ (français)
  * @link http://www.faqs.org/rfcs/ (anglais)
  * @link http://www.commentcamarche.net/internet/smtp.php3
@@ -38,7 +22,6 @@ class Mailer_SMTP {
 	 * Socket de connexion au serveur SMTP
 	 * 
 	 * @var resource
-	 * @access private
 	 */
 	private $socket;
 	
@@ -46,7 +29,6 @@ class Mailer_SMTP {
 	 * Nom ou IP du serveur smtp à contacter
 	 * 
 	 * @var string
-	 * @access private
 	 */
 	private $server;
 	
@@ -54,7 +36,6 @@ class Mailer_SMTP {
 	 * Port d'accès
 	 * 
 	 * @var integer
-	 * @access private
 	 */
 	private $port;
 	
@@ -62,7 +43,6 @@ class Mailer_SMTP {
 	 * Nom d'utilisateur pour l’authentification
 	 * 
 	 * @var string
-	 * @access private
 	 */
 	private $username;
 	
@@ -70,7 +50,6 @@ class Mailer_SMTP {
 	 * Mot de passe pour l’authentification
 	 * 
 	 * @var string
-	 * @access private
 	 */
 	private $passwd;
 	
@@ -100,12 +79,11 @@ class Mailer_SMTP {
 	/**
 	 * Établit la connexion au serveur SMTP
 	 * 
-	 * @param string  $server    Nom ou IP du serveur
-	 * @param integer $port      Port d'accès
-	 * @param string  $username  Nom d'utilisateur pour l’authentification (si nécessaire)
-	 * @param string  $passwd    Mot de passe pour l’authentification (si nécessaire)
+	 * @param string  $server   Nom ou IP du serveur
+	 * @param integer $port     Port d'accès
+	 * @param string  $username Nom d'utilisateur pour l’authentification (si nécessaire)
+	 * @param string  $passwd   Mot de passe pour l’authentification (si nécessaire)
 	 * 
-	 * @access public
 	 * @return boolean
 	 */
 	public function connect($server = null, $port = null, $username = null, $passwd = null)
@@ -213,7 +191,6 @@ class Mailer_SMTP {
 	 * @param string $username
 	 * @param string $passwd
 	 * 
-	 * @access public
 	 * @return boolean
 	 */
 	public function authenticate($username, $passwd)
@@ -242,7 +219,6 @@ class Mailer_SMTP {
 	 * 
 	 * @param string $email
 	 * 
-	 * @access public
 	 * @return boolean
 	 */
 	public function from($email = null)
@@ -272,7 +248,6 @@ class Mailer_SMTP {
 	 * @param string  $email
 	 * @param boolean $strict (si true, retourne true uniquement si code 250)
 	 * 
-	 * @access public
 	 * @return boolean
 	 */
 	public function to($email, $strict = false)
@@ -342,7 +317,6 @@ class Mailer_SMTP {
 	/**
 	 * Envoi la commande NOOP
 	 * 
-	 * @access public
 	 * @return boolean
 	 */
 	public function noop()
@@ -359,7 +333,6 @@ class Mailer_SMTP {
 	/**
 	 * Envoi la commande RSET
 	 * 
-	 * @access public
 	 * @return boolean
 	 */
 	public function reset()
@@ -376,7 +349,6 @@ class Mailer_SMTP {
 	/**
 	 * Envoi la commande VRFY
 	 * 
-	 * @access public
 	 * @return boolean
 	 */
 	public function verify($str)
@@ -394,9 +366,6 @@ class Mailer_SMTP {
 	/**
 	 * Envoi la commande QUIT
 	 * Termine le dialogue avec le serveur SMTP et ferme le socket de connexion
-	 * 
-	 * @access public
-	 * @return void
 	 */
 	public function quit()
 	{
