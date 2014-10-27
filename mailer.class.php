@@ -9,11 +9,6 @@
 
 require dirname(__FILE__) . '/mime.class.php';
 
-if( function_exists('email') && !function_exists('mail') ) {
-	// on est probablement chez l’hébergeur Online
-	require dirname(__FILE__) . '/online.php';
-}
-
 //
 // Compatibilité php < 5.1.1
 //
