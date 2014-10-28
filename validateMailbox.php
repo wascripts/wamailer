@@ -52,7 +52,7 @@ function validateMailbox($emailList, &$return_errors = null)
 				$domainList[$domain] = array();
 			}
 
-			array_push($domainList[$domain], $mailbox);
+			$domainList[$domain][] = $mailbox;
 		}
 		else {
 			$return_errors[$email] = 'Invalid syntax';
@@ -65,7 +65,7 @@ function validateMailbox($emailList, &$return_errors = null)
 			$result = getmxrr($domain, $hosts, $weight);
 
 			for ($i = 0, $m = count($hosts); $i < $m; $i++) {
-				array_push($mxhosts, array($weight[$i], $hosts[$i]));
+				$mxhosts[] = array($weight[$i], $hosts[$i]);
 			}
 		}
 		else {
@@ -77,10 +77,10 @@ function validateMailbox($emailList, &$return_errors = null)
 
 			foreach ($lines as $value) {
 				if (preg_match($regexp, $value, $match)) {
-					array_push($mxhosts, array(
+					$mxhosts[] = array(
 						($match[3] === '' ? $match[2] : $match[3]),
 						$match[4]
-					));
+					);
 				}
 			}
 
@@ -88,7 +88,7 @@ function validateMailbox($emailList, &$return_errors = null)
 		}
 
 		if (!$result) {
-			array_push($mxhosts, array(0, $domain));
+			$mxhosts[] = array(0, $domain);
 		}
 
 		array_multisort($mxhosts);

@@ -344,7 +344,7 @@ class Mime_Part
 			$this->subparts = array_merge($this->subparts, $subpart);
 		}
 		else {
-			array_push($this->subparts, $subpart);
+			$this->subparts[] = $subpart;
 		}
 	}
 
@@ -512,7 +512,7 @@ class Mime_Headers implements Iterator
 				$this->headers[$name] = array($this->headers[$name]);
 			}
 
-			array_push($this->headers[$name], $header);
+			$this->headers[$name][] = $header;
 		}
 		else {
 			$this->headers[$name] = $header;

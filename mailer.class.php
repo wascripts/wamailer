@@ -813,7 +813,7 @@ class Email
 		$attach->headers->get('Content-Disposition')->param('size', strlen($data));
 		$attach->headers->set('Content-Transfer-Encoding', 'base64');
 
-		array_push($this->_attachParts, $attach);
+		$this->_attachParts[] = $attach;
 		$this->message_txt = '';
 
 		return $attach;
@@ -865,7 +865,7 @@ class Email
 					$attach->headers->set('Content-ID', "<$cid>");
 				}
 
-				array_push($embedParts, $attach);
+				$embedParts[] = $attach;
 				$attach = null;
 			}
 

@@ -173,7 +173,7 @@ class Mailer_SMTP
 
 		for ($i = 0; $i < $numargs; $i++) {
 			$arg = func_get_arg($i);
-			array_push($codesOK, $arg);
+			$codesOK[] = $arg;
 		}
 
 		$this->get();
