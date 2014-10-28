@@ -1,0 +1,18 @@
+{
+	"name": "wascripts/wamailer",
+	"description": "Classe d'envoi d'emails",
+	"keywords": ["mailing", "library", "email", "smtp"],
+	"homepage": "http://phpcodeur.net/wascripts/wamailer/",
+	"type": "library",
+	"license": "LGPL-2.1+",
+	"authors": [
+		{
+			"name": "Aurélien Maille",
+			"email": "wascripts@phpcodeur.net",
+			"role": "lead developer"
+		}
+	],
+	"require": {
+		"php": ">=5.1.1"
+	}
+}
