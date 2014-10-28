@@ -9,13 +9,6 @@
 
 require dirname(__FILE__) . '/mime.class.php';
 
-//
-// Compatibilité php < 5.1.1
-//
-if (!defined('DATE_RFC2822')) {
-    define('DATE_RFC2822', 'D, d M Y H:i:s O');
-}
-
 if (!($hostname = @php_uname('n'))) {
     $hostname = (isset($_SERVER['SERVER_NAME'])) ? $_SERVER['SERVER_NAME'] : 'localhost';
 }
