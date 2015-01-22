@@ -8,6 +8,7 @@
  *
  * @see RFC 2821 - Simple Mail Transfer Protocol
  * @see RFC 2554 - SMTP Service Extension for Authentication
+ * @see RFC 3207 - Secure SMTP over Transport Layer Security
  *
  * Les sources qui m'ont bien aidées :
  *
@@ -54,7 +55,7 @@ class Mailer_SMTP
 	 */
 	private $passwd;
 
-	public  $timeout    = 3;
+	public  $timeout    = 30;
 	public  $debug      = false;
 	public  $save_log   = false;
 	public  $filename   = '/var/log/wamailer_smtp.log';
@@ -104,12 +105,30 @@ class Mailer_SMTP
 		$this->_responseData = null;
 		$this->logstr = '';
 
+		$startTLS = false;
+		if (preg_match('#^tls://#', $server)) {
+			$startTLS = true;
+			$server   = substr($server, 6);
+		}
+
 		//
 		// Ouverture du socket de connexion au serveur SMTP
 		//
-		if (!($this->socket = fsockopen($server, $port, $errno, $errstr, $this->timeout))) {
+		$context = stream_context_create();
+		$this->socket = stream_socket_client(
+			sprintf('%s:%d', $server, $port),
+			$errno,
+			$errstr,
+			$this->timeout,
+			STREAM_CLIENT_CONNECT,
+			$context
+		);
+
+		if (!$this->socket) {
 			throw new Exception("Échec lors de la connexion au serveur smtp ($errno - $errstr)");
 		}
+
+		stream_set_timeout($this->socket, $this->timeout);
 
 		//
 		// Code success : 220
@@ -119,18 +138,29 @@ class Mailer_SMTP
 			return false;
 		}
 
+		$this->hello($hostname);
+
 		//
-		// Comme on est poli, on dit bonjour, et on s'authentifie le cas échéant
+		// Le cas échéant, on utilise le protocole sécurisé TLS
 		//
-		// Code success : 250
-		// Code error   : 500, 501, 504, 421
+		// Code success : 220
+		// Code error   : 421
 		//
-		$this->put(sprintf("EHLO %s\r\n", $hostname));
-		if (!$this->checkResponse(250)) {
-			$this->put(sprintf("HELO %s\r\n", $hostname));
-			if (!$this->checkResponse(250)) {
+		if ($startTLS) {
+			$this->put("STARTTLS\r\n");
+			if (!$this->checkResponse(220)) {
 				return false;
 			}
+
+			if (!stream_socket_enable_crypto(
+				$this->socket,
+				true,
+				STREAM_CRYPTO_METHOD_TLS_CLIENT
+			)) {
+				return false;
+			}
+
+			$this->hello($hostname);
 		}
 
 		if (!is_null($username) && !is_null($passwd)) {
@@ -140,17 +170,32 @@ class Mailer_SMTP
 		return true;
 	}
 
+	/**
+	 * Vérifie l'état de la connexion
+	 *
+	 * @return boolean
+	 */
 	public function isConnected()
 	{
 		return is_resource($this->smtp->socket);
 	}
 
+	/**
+	 * Envoi d'une commande au serveur
+	 *
+	 * @param string $input
+	 */
 	public function put($input)
 	{
 		$this->log($input);
 		fputs($this->socket, $input);
 	}
 
+	/**
+	 * Récupère le code de réponse du serveur
+	 *
+	 * @return integer
+	 */
 	public function get()
 	{
 		while ($data = fgets($this->socket, 512)) {
@@ -166,6 +211,11 @@ class Mailer_SMTP
 		return $this->_responseCode;
 	}
 
+	/**
+	 * Vérifie la réponse renvoyée par le serveur
+	 *
+	 * @return boolean
+	 */
 	public function checkResponse()
 	{
 		$codesOK = array();
@@ -187,7 +237,33 @@ class Mailer_SMTP
 	}
 
 	/**
-	 * Authentification auprès du serveur, s’il le supporte
+	 * Commande de démarrage EHLO ou HELO auprès du serveur
+	 *
+	 * @param string $hostname
+	 *
+	 * @return boolean
+	 */
+	public function hello($hostname)
+	{
+		//
+		// Comme on est poli, on dit bonjour
+		//
+		// Code success : 250
+		// Code error   : 500, 501, 504, 421
+		//
+		$this->put(sprintf("EHLO %s\r\n", $hostname));
+		if (!$this->checkResponse(250)) {
+			$this->put(sprintf("HELO %s\r\n", $hostname));
+			if (!$this->checkResponse(250)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Authentification auprès du serveur (mode LOGIN uniquement)
 	 *
 	 * @param string $username
 	 * @param string $passwd
@@ -267,6 +343,13 @@ class Mailer_SMTP
 		return $strict ? $this->checkResponse(250) : $this->checkResponse(250, 251);
 	}
 
+	/**
+	 * Envoie des données
+	 *
+	 * @param string $email
+	 *
+	 * @return boolean
+	 */
 	public function send($email)
 	{
 		//
