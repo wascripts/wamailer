@@ -177,7 +177,7 @@ class Mailer_SMTP
 	 */
 	public function isConnected()
 	{
-		return is_resource($this->smtp->socket);
+		return is_resource($this->socket);
 	}
 
 	/**
