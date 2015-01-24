@@ -3,7 +3,7 @@
  * @package   Wamailer
  * @author    Bobe <wascripts@phpcodeur.net>
  * @link      http://phpcodeur.net/wascripts/wamailer/
- * @copyright 2002-2014 Aurélien Maille
+ * @copyright 2002-2015 Aurélien Maille
  * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
  *
  * @see RFC 2045 - Multipurpose Internet Mail Extensions (MIME) Part One: Format of Internet Message Bodies
