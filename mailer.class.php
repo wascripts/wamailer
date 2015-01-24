@@ -733,6 +733,12 @@ class Email
 		return $this->_textPart;
 	}
 
+	public function removeTextBody()
+	{
+		$this->_textPart = null;
+		$this->message_txt = '';
+	}
+
 	/**
 	 * @param string $message Le message de l’email au format HTML
 	 * @param string $charset Jeu de caractères de la chaîne contenue dans $message
@@ -752,6 +758,12 @@ class Email
 		$this->message_txt = '';
 
 		return $this->_htmlPart;
+	}
+
+	public function removeHTMLBody()
+	{
+		$this->_htmlPart = null;
+		$this->message_txt = '';
 	}
 
 	/**
