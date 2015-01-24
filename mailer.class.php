@@ -37,7 +37,7 @@ abstract class Mailer
 	/**
 	 * Version courante de Wamailer
 	 */
-	const VERSION = '3.0';
+	const VERSION = '3.1';
 
 	/********************** RÉGLAGES SENDMAIL **********************/
 
