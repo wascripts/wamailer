@@ -70,8 +70,15 @@ abstract class Mailer
 
 	/**
 	 * Serveur SMTP à contacter
+	 * Format simple : 'hostname', 'hostname:port' ou 'ssl://hostname:port'
+	 * Format avancé : [
+	 *     'server'   => 'tls://hostname:port',
+	 *     'username' => 'myusername',
+	 *     'passwd'   => 'mypassword'
+	 * ]
+	 * Les protocoles valables sont 'ssl' et 'tls'.
 	 *
-	 * @var string
+	 * @var mixed
 	 */
 	public static $smtp_server = 'localhost';
 
@@ -79,20 +86,30 @@ abstract class Mailer
 	 * Active ou désactive l’utilisation directe de sendmail pour l’envoi des emails
 	 *
 	 * @param boolean $use Active/désactive le mode sendmail
+	 * @param string  $cmd Commande système à utiliser
 	 */
-	public static function useSendmail($use)
+	public static function useSendmail($use, $cmd = null)
 	{
 		self::$sendmail_mode = $use;
+
+		if (is_string($cmd)) {
+			self::$sendmail_cmd = $cmd;
+		}
 	}
 
 	/**
 	 * Active ou désactive l’utilisation directe d’un serveur SMTP pour l’envoi des emails
 	 *
-	 * @param boolean $use Active/désactive le mode SMTP
+	 * @param boolean $use    Active/désactive le mode SMTP
+	 * @param mixed   $server Informations de connexion au serveur (voir la propriété $smtp_server)
 	 */
-	public static function useSMTP($use)
+	public static function useSMTP($use, $server = null)
 	{
 		self::$smtp_mode = $use;
+
+		if (!is_null($server)) {
+			self::$smtp_server = $server;
+		}
 	}
 
 	/**
@@ -346,8 +363,34 @@ abstract class Mailer
 			$rPath = ini_get('sendmail_from');
 		}
 
+		$server   = self::$smtp_server;
+		$port     = 25;
+		$username = null;
+		$passwd   = null;
+
+		if (is_array($server) && isset($server['server'])) {
+			if (!empty($server['username'])) {
+				$username = $server['username'];
+			}
+
+			if (!empty($server['passwd'])) {
+				$passwd = $server['passwd'];
+			}
+
+			$server = $server['server'];
+		}
+
+		if ($server == '') {
+			throw new Exception("No valid SMTP server name given");
+		}
+
+		if (preg_match('#^(.+):([0-9]+)$#', $server, $m)) {
+			$server = $m[1];
+			$port   = $m[2];
+		}
+
 		$smtp = new Mailer_SMTP();
-		$smtp->connect(self::$smtp_server);
+		$smtp->connect($server, $port, $username, $passwd);
 
 		if (!$smtp->from($rPath)) {
 //			$this->error($smtp->msg_error);
