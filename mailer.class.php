@@ -72,12 +72,14 @@ abstract class Mailer
 	 * Serveur SMTP à contacter
 	 * Format simple : 'hostname', 'hostname:port' ou 'ssl://hostname:port'
 	 * Format avancé : [
-	 *     'server'   => 'tls://hostname:port',
+	 *     'server'   => 'hostname:port',
 	 *     'username' => 'myusername',
 	 *     'passwd'   => 'mypassword',
 	 *     'starttls' => true
 	 * ]
-	 * Les protocoles valables sont 'ssl' et 'tls'.
+	 * L'option starttls est inutile et sera ignorée si la connexion est
+	 * sécurisée dès son initialisation par l'emploi de l'un des préfixes
+	 * ssl/tls supportés par PHP [1] (voir http://php.net/stream-get-transports)
 	 *
 	 * @var mixed
 	 */
