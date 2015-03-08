@@ -59,6 +59,7 @@ class Mailer_SMTP
 	public  $debug      = false;
 	public  $save_log   = false;
 	public  $filename   = '/var/log/wamailer_smtp.log';
+	public  $startTLS   = false;
 	private $logstr     = '';
 	private $eol        = "\r\n";// pour la sortie standard
 	private $fromCalled = false;
@@ -106,9 +107,8 @@ class Mailer_SMTP
 		$this->logstr = '';
 
 		$startTLS = false;
-		if (preg_match('#^tls://#', $server)) {
-			$startTLS = true;
-			$server   = substr($server, 6);
+		if (!preg_match('#^(ssl|tls)://#', $server)) {
+			$startTLS = $this->startTLS;
 		}
 
 		//

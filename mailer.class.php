@@ -74,7 +74,8 @@ abstract class Mailer
 	 * Format avancé : [
 	 *     'server'   => 'tls://hostname:port',
 	 *     'username' => 'myusername',
-	 *     'passwd'   => 'mypassword'
+	 *     'passwd'   => 'mypassword',
+	 *     'starttls' => true
 	 * ]
 	 * Les protocoles valables sont 'ssl' et 'tls'.
 	 *
@@ -367,6 +368,7 @@ abstract class Mailer
 		$port     = 25;
 		$username = null;
 		$passwd   = null;
+		$starttls = false;
 
 		if (is_array($server) && isset($server['server'])) {
 			if (!empty($server['username'])) {
@@ -377,7 +379,8 @@ abstract class Mailer
 				$passwd = $server['passwd'];
 			}
 
-			$server = $server['server'];
+			$server   = $server['server'];
+			$starttls = !empty($server['starttls']);
 		}
 
 		if ($server == '') {
@@ -390,6 +393,7 @@ abstract class Mailer
 		}
 
 		$smtp = new Mailer_SMTP();
+		$smtp->startTLS = $starttls;
 		$smtp->connect($server, $port, $username, $passwd);
 
 		if (!$smtp->from($rPath)) {
