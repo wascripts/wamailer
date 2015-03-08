@@ -107,7 +107,7 @@ class Mailer_SMTP
 		$this->logstr = '';
 
 		$startTLS = false;
-		if (!preg_match('#^(ssl|tls)://#', $server)) {
+		if (!preg_match('#^(ssl|tls)(v[.0-9]+)?://#', $server)) {
 			$startTLS = $this->startTLS;
 		}
 
