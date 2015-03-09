@@ -969,7 +969,7 @@ class Email
 			// composés de plusieurs sous-parties, au cas où le client mail
 			// ne supporterait pas ceux-ci…
 			//
-			if (strncasecmp($rootPart->headers->get('Content-Type')->value, 'multipart', 9) == 0) {
+			if ($rootPart->isMultiPart()) {
 				$rootPart->body = "This is a multi-part message in MIME format.";
 			}
 
