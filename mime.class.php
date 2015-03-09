@@ -731,7 +731,7 @@ class Mime_Header
 	 */
 	public function sanitizeValue($value)
 	{
-		return preg_replace('/\s+/S', ' ', trim($value));
+		return preg_replace('/\s+/S', ' ', $value);
 	}
 
 	/**
