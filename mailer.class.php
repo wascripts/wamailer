@@ -381,8 +381,8 @@ abstract class Mailer
 				$passwd = $server['passwd'];
 			}
 
-			$server   = $server['server'];
 			$starttls = !empty($server['starttls']);
+			$server   = $server['server'];
 		}
 
 		if ($server == '') {
