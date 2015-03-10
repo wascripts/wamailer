@@ -39,6 +39,14 @@ abstract class Mailer
 	 */
 	const VERSION = '3.1';
 
+	/**
+	 * Valeur du champ X-Mailer.
+	 * %s est remplacé par Mailer::VERSION
+	 *
+	 * @var string
+	 */
+	public static $signature = 'Wamailer/%s';
+
 	/********************** RÉGLAGES SENDMAIL **********************/
 
 	/**
@@ -156,7 +164,7 @@ abstract class Mailer
 	 */
 	public static function send(Email $email)
 	{
-		$email->headers->set('X-Mailer', sprintf('Wamailer/%s', self::VERSION));
+		$email->headers->set('X-Mailer', sprintf(self::$signature, self::VERSION));
 
 		$rPath = $email->headers->get('Return-Path');
 		if (!is_null($rPath)) {
