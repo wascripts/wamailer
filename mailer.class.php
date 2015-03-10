@@ -161,6 +161,12 @@ abstract class Mailer
 		$rPath = $email->headers->get('Return-Path');
 		if (!is_null($rPath)) {
 			$rPath = trim($rPath->value, '<>');
+			/**
+			 * L'en-tête Return-Path ne devrait être ajouté que par le dernier
+			 * serveur SMTP de la chaîne de transmission et non pas par le MUA
+			 * @see RFC2321#4.4
+			 */
+			$email->headers->remove('Return-Path');
 		}
 
 		if (self::$sendmail_mode) {
