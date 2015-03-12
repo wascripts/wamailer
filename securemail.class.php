@@ -120,7 +120,7 @@ class SecureMail extends Email
 			throw new Exception(sprintf("[%s] is not a valid executable.", $this->gpg_bin));
 		}
 
-		if(!((file_exists($this->logfile) && is_writable($this->logfile))
+		if (!((file_exists($this->logfile) && is_writable($this->logfile))
 			|| is_writable(dirname($this->logfile))
 		)) {
 			throw new Exception(sprintf("Unable to write log file [%s].", $this->logfile));

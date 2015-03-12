@@ -144,7 +144,9 @@ class Mime
 				$tmplen = $maxlen;
 				if ($newbody == '') {
 					$tmplen -= strlen($name . ': ');
-					if( $encoding == 'Q' ) $tmplen++;// TODO : à comprendre
+					if ($encoding == 'Q') {
+						$tmplen++;
+					}
 				}
 
 				if ($encoding == 'Q') {
@@ -548,7 +550,7 @@ class Mime_Headers implements Iterator
 	public function get($name)
 	{
 		$name = strtolower($name);
-		if( isset($this->headers[$name]) && (is_array($this->headers[$name]) || $this->headers[$name]->value != '')) {
+		if (isset($this->headers[$name]) && (is_array($this->headers[$name]) || $this->headers[$name]->value != '')) {
 			return $this->headers[$name];
 		}
 
