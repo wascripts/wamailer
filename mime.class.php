@@ -839,6 +839,15 @@ class Mime_Header
 		return $value;
 	}
 
+	public function __set($name, $value)
+	{
+		switch ($name) {
+			case 'value':
+				$this->{'_'.$name} = self::sanitizeValue($value);
+				break;
+		}
+	}
+
 	public function __get($name)
 	{
 		$value = null;
