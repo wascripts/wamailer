@@ -164,6 +164,9 @@ abstract class Mailer
 	 */
 	public static function send(Email $email)
 	{
+		// On veut travailler sur une copie et non pas altérer l'instance d'origine
+		$email = clone $email;
+
 		$email->headers->set('X-Mailer', sprintf(self::$signature, self::VERSION));
 
 		$rPath = $email->headers->get('Return-Path');
