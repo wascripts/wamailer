@@ -29,8 +29,8 @@ unset($hostname);
  *
  * Les sources qui m’ont bien aidées :
  *
- * @link http://cvs.php.net/php-src/ext/standard/mail.c
- * @link http://cvs.php.net/php-src/win32/sendmail.c
+ * @link https://github.com/php/php-src/blob/master/ext/standard/mail.c
+ * @link https://github.com/php/php-src/blob/master/win32/sendmail.c
  */
 abstract class Mailer
 {
