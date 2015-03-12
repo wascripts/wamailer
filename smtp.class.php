@@ -55,12 +55,27 @@ class Mailer_SMTP
 	 */
 	private $passwd;
 
+	/**
+	 * Timeout de connexion
+	 *
+	 * @var integer
+	 */
 	public  $timeout    = 30;
+
+	/**
+	 * Timeout de connexion
+	 *
+	 * @var boolean|callable
+	 */
 	public  $debug      = false;
-	public  $save_log   = false;
-	public  $filename   = '/var/log/wamailer_smtp.log';
+
+	/**
+	 * Timeout de connexion
+	 *
+	 * @var boolean
+	 */
 	public  $startTLS   = false;
-	private $logstr     = '';
+
 	private $eol        = "\r\n";// pour la sortie standard
 	private $fromCalled = false;
 
@@ -104,7 +119,6 @@ class Mailer_SMTP
 
 		$this->_responseCode = null;
 		$this->_responseData = null;
-		$this->logstr = '';
 
 		$startTLS = false;
 		if (!preg_match('#^(ssl|tls)(v[.0-9]+)?://#', $server)) {
@@ -464,28 +478,19 @@ class Mailer_SMTP
 			fclose($this->socket);
 			$this->socket = null;
 		}
-
-		if ($this->save_log) {
-			if ($fw = fopen($this->filename, 'w')) {
-				$logstr	 = 'Connexion au serveur ' . $this->server . ' :: ' . date('d/M/Y H:i:s O');
-				$logstr .= $this->eol . '--------------------' . $this->eol;
-				$logstr .= $this->logstr . $this->eol . $this->eol;
-
-				fwrite($fw, $logstr);
-				fclose($fw);
-			}
-		}
 	}
 
 	private function log($str)
 	{
-		$str = str_replace("\r\n", $this->eol, $str);
 		if ($this->debug) {
-			echo $str;
-			flush();
+			if (is_callable($this->debug)) {
+				call_user_func($this->debug, $str);
+			}
+			else {
+				echo $str;
+				flush();
+			}
 		}
-
-		$this->logstr .= $str;
 	}
 
 	public function __get($name)
