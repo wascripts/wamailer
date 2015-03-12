@@ -695,6 +695,42 @@ class Email
 	}
 
 	/**
+	 * Détermine si au moins un destinataire est défini
+	 *
+	 * @return boolean
+	 */
+	public function hasRecipients()
+	{
+		$header_to  = $this->headers->get('To');
+		$header_cc  = $this->headers->get('Cc');
+		$header_bcc = $this->headers->get('Bcc');
+
+		$result = false;
+
+		if ($header_to != null && strlen($header_to->value) > 0) {
+			$result = true;
+		}
+		else if ($header_cc != null && strlen($header_cc->value) > 0) {
+			$result = true;
+		}
+		else if ($header_bcc != null && strlen($header_bcc->value) > 0) {
+			$result = true;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Supprime tous les destinataires définis
+	 */
+	public function clearRecipients()
+	{
+		$this->headers->remove('To');
+		$this->headers->remove('Cc');
+		$this->headers->remove('Bcc');
+	}
+
+	/**
 	 * @param string $email Email de réponse
 	 * @param string $name  Personnalisation
 	 */
