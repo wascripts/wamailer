@@ -87,7 +87,16 @@ abstract class Mailer
 	 * ]
 	 * L'option starttls est inutile et sera ignorée si la connexion est
 	 * sécurisée dès son initialisation par l'emploi de l'un des préfixes
-	 * ssl/tls supportés par PHP [1] (voir http://php.net/stream-get-transports)
+	 * ssl/tls supportés par PHP (voir http://php.net/stream-get-transports)
+	 *
+	 * Une autre option utilisable est 'debug' et peut être soit un booléen,
+	 * ou bien toute valeur utilisable avec call_user_func(). Exemple :
+	 * [
+	 *     'server'   => 'tls://hostname:port',
+	 *     'username' => 'myusername',
+	 *     'passwd'   => 'mypassword',
+	 *     'debug'    => function ($str) { writelog($str); }
+	 * ]
 	 *
 	 * @var mixed
 	 */
@@ -386,6 +395,7 @@ abstract class Mailer
 		$username = null;
 		$passwd   = null;
 		$starttls = false;
+		$debug    = false;
 
 		if (is_array($server) && isset($server['server'])) {
 			if (!empty($server['username'])) {
@@ -394,6 +404,10 @@ abstract class Mailer
 
 			if (!empty($server['passwd'])) {
 				$passwd = $server['passwd'];
+			}
+
+			if (!empty($server['debug'])) {
+				$debug = $server['debug'];
 			}
 
 			$starttls = !empty($server['starttls']);
@@ -411,6 +425,8 @@ abstract class Mailer
 
 		$smtp = new Mailer_SMTP();
 		$smtp->startTLS = $starttls;
+		$smtp->debug    = $debug;
+
 		$smtp->connect($server, $port, $username, $passwd);
 
 		if (!$smtp->from($rPath)) {
