@@ -176,6 +176,10 @@ abstract class Mailer
 		// On veut travailler sur une copie et non pas altérer l'instance d'origine
 		$email = clone $email;
 
+		if (!$email->hasRecipients()) {
+			throw new Exception("No recipient address given");
+		}
+
 		$email->headers->set('X-Mailer', sprintf(self::$signature, self::VERSION));
 
 		$rPath = $email->headers->get('Return-Path');
