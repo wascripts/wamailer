@@ -199,7 +199,7 @@ abstract class Mailer
 				$header = $email->headers->get($name);
 
 				if (!is_null($header)) {
-					$addressList = $header->__toString();
+					$addressList = $header->value;
 					$recipients = array_merge($recipients,
 						self::clearAddressList($addressList)
 					);
@@ -219,16 +219,14 @@ abstract class Mailer
 			$subject = $email->headers->get('Subject');
 			$recipients = $email->headers->get('To');
 
-			list($headers, $message) = explode("\r\n\r\n", $email->__toString(), 2);
-
 			if (!is_null($subject)) {
-				$subject = $subject->__toString();
-				$headers = str_replace($subject."\r\n", '', $headers);
-				$subject = substr($subject, 9);// on skip le nom de l’en-tête
+				$subject = $subject->value;
+				// La fonction mail() ajoute elle-même l'en-tête Subject
+				$email->headers->remove('Subject');
 			}
 
 			if (!is_null($recipients)) {
-				$recipients = $recipients->__toString();
+				$recipients = $recipients->value;
 
 				if (PHP_USE_SENDMAIL) {
 					//
@@ -237,8 +235,7 @@ abstract class Mailer
 					// On passe déjà la liste des destinataires principaux (To)
 					// en argument de la fonction mail(), donc on supprime l’en-tête To
 					//
-					$headers = str_replace($recipients."\r\n", '', $headers);
-					$recipients = substr($recipients, 4);// on skip le nom de l’en-tête
+					$email->headers->remove('To');
 				}
 				else {
 					//
@@ -251,6 +248,33 @@ abstract class Mailer
 					$recipients = implode(', ', self::clearAddressList($recipients));
 				}
 			}
+
+			if (!PHP_USE_SENDMAIL) {
+				//
+				// La fonction mail() utilise prioritairement la valeur de l’option
+				// sendmail_from comme adresse à passer dans la commande MAIL FROM
+				// (adresse qui sera utilisée par le serveur SMTP pour forger l’entête
+				// Return-Path). On donne la valeur de $rPath à l’option sendmail_from
+				//
+				if (!is_null($rPath)) {
+					ini_set('sendmail_from', $rPath);
+				}
+
+				//
+				// La fonction mail() va parser elle-même les entêtes Cc et Bcc
+				// pour passer les adresses destinataires au serveur SMTP.
+				// Il est donc indispensable de nettoyer l’entête Cc de toute
+				// personnalisation sous peine d’obtenir une erreur.
+				//
+				$header_cc = $email->headers->get('Cc');
+				if (!is_null($header_cc)) {
+					$header_cc->value = implode(', ',
+						self::clearAddressList($header_cc->value)
+					);
+				}
+			}
+
+			list($headers, $message) = explode("\r\n\r\n", $email->__toString(), 2);
 
 			if (PHP_USE_SENDMAIL) {
 				$headers = str_replace("\r\n", MAILER_MIME_EOL, $headers);
@@ -273,32 +297,6 @@ abstract class Mailer
 				if (strncasecmp(PHP_OS, 'Win', 3) != 0) {
 					$subject = str_replace("\r\n\t", ' ', $subject);
 					$recipients = str_replace("\r\n\t", ' ', $recipients);
-				}
-			}
-			else {
-				//
-				// La fonction mail() utilise prioritairement la valeur de l’option
-				// sendmail_from comme adresse à passer dans la commande MAIL FROM
-				// (adresse qui sera utilisée par le serveur SMTP pour forger l’entête
-				// Return-Path). On donne la valeur de $rPath à l’option sendmail_from
-				//
-				if (!is_null($rPath)) {
-					ini_set('sendmail_from', $rPath);
-				}
-
-				//
-				// La fonction mail() va parser elle-même les entêtes Cc et Bcc
-				// pour passer les adresses destinataires au serveur SMTP.
-				// Il est donc indispensable de nettoyer l’entête Cc de toute
-				// personnalisation sous peine d’obtenir une erreur.
-				//
-				$header_cc = $email->headers->get('Cc');
-				if (!is_null($header_cc)) {
-					$header_cc = $header_cc->__toString();
-					$new_header_cc = new Mime_Header('Cc',
-						implode(', ', self::clearAddressList($header_cc))
-					);
-					$headers = str_replace($header_cc, $new_header_cc->__toString(), $headers);
 				}
 			}
 
