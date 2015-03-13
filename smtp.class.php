@@ -139,7 +139,7 @@ class Mailer_SMTP
 		);
 
 		if (!$this->socket) {
-			throw new Exception("Échec lors de la connexion au serveur smtp ($errno - $errstr)");
+			throw new Exception("Mailer_SMTP::connect(): Failed to connect to SMTP server ($errno - $errstr)");
 		}
 
 		stream_set_timeout($this->socket, $this->timeout);

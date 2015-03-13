@@ -169,6 +169,8 @@ abstract class Mailer
 	 *
 	 * @param Email $email
 	 *
+	 * @throws Exception
+	 *
 	 * @return boolean
 	 */
 	public static function send(Email $email)
@@ -177,7 +179,7 @@ abstract class Mailer
 		$email = clone $email;
 
 		if (!$email->hasRecipients()) {
-			throw new Exception("No recipient address given");
+			throw new Exception("Mailer::send(): No recipient address given");
 		}
 
 		$email->headers->set('X-Mailer', sprintf(self::$signature, self::VERSION));
@@ -313,12 +315,16 @@ abstract class Mailer
 				}
 			}
 
+			set_error_handler(array('Mailer', 'errorHandler'));
+
 			if (!ini_get('safe_mode') && !is_null($rPath)) {
 				$result = mail($recipients, $subject, $message, $headers, '-f' . $rPath);
 			}
 			else {
 				$result = mail($recipients, $subject, $message, $headers);
 			}
+
+			restore_error_handler();
 
 			if (!PHP_USE_SENDMAIL) {
 				ini_restore('sendmail_from');
@@ -335,6 +341,8 @@ abstract class Mailer
 	 * @param string $recipients Adresses supplémentaires de destinataires
 	 * @param string $rPath      Adresse d’envoi (définit le return-path)
 	 *
+	 * @throws Exception
+	 *
 	 * @return boolean
 	 */
 	public static function sendmail($email, $recipients = null, $rPath = null)
@@ -346,12 +354,6 @@ abstract class Mailer
 			$sendmail_cmd = ini_get('sendmail_path');
 		}
 
-		$sendmail_path = substr($sendmail_cmd, 0, strpos($sendmail_cmd, ' '));
-
-		if (!is_executable($sendmail_path)) {
-			throw new Exception("Mailer::sendmail() : [$sendmail_path] n'est pas un fichier exécutable valide");
-		}
-
 		if (!is_null($rPath)) {
 			$sendmail_cmd .= ' -f' . escapeshellcmd($rPath);
 		}
@@ -360,16 +362,20 @@ abstract class Mailer
 			$sendmail_cmd .= ' -- ' . escapeshellcmd(implode(' ', $recipients));
 		}
 
-		$sendmail = popen($sendmail_cmd, 'wb');
+		if (!($sendmail = popen($sendmail_cmd, 'wb'))) {
+			throw new Exception(sprintf(
+				"Mailer::sendmail(): Could not execute mail delivery program '%s'",
+				substr($sendmail_cmd, 0, strpos($sendmail_cmd, ' '))
+			));
+		}
+
 		fputs($sendmail, preg_replace("/\r\n?/", MAILER_MIME_EOL, $email));
 
 		if (($code = pclose($sendmail)) != 0) {
-			trigger_error(
-				"Mailer::sendmail() : Sendmail a retourné le code d'erreur suivant -> $code",
-				E_USER_WARNING
-			);
-
-			return false;
+			throw new Exception(sprintf(
+				"Mailer::sendmail(): The mail delivery program has returned the following error code (%d)",
+				$code
+			));
 		}
 
 		return true;
@@ -381,6 +387,8 @@ abstract class Mailer
 	 * @param string $email      Email à envoyer
 	 * @param string $recipients Adresses des destinataires
 	 * @param string $rPath      Adresse d’envoi (définit le return-path)
+	 *
+	 * @throws Exception
 	 *
 	 * @return boolean
 	 */
@@ -419,7 +427,7 @@ abstract class Mailer
 		}
 
 		if ($server == '') {
-			throw new Exception("No valid SMTP server name given");
+			throw new Exception("Mailer::smtpmail(): No valid SMTP server given");
 		}
 
 		if (preg_match('#^(.+):([0-9]+)$#', $server, $m)) {
@@ -431,32 +439,38 @@ abstract class Mailer
 		$smtp->startTLS = $starttls;
 		$smtp->debug    = $debug;
 
-		$smtp->connect($server, $port, $username, $passwd);
+		if (!$smtp->connect($server, $port, $username, $passwd)) {
+			$smtp->quit();
+			throw new Exception(sprintf(
+				"Mailer::smtpmail(): SMTP server response: '%s'",
+				$smtp->responseData
+			));
+		}
 
 		if (!$smtp->from($rPath)) {
-//			$this->error($smtp->msg_error);
-			$GLOBALS['php_errormsg'] = $smtp->responseData;
 			$smtp->quit();
-
-			return false;
+			throw new Exception(sprintf(
+				"Mailer::smtpmail(): SMTP server response: '%s'",
+				$smtp->responseData
+			));
 		}
 
 		foreach ($recipients as $recipient) {
 			if (!$smtp->to($recipient)) {
-//				$this->error($smtp->msg_error);
-				$GLOBALS['php_errormsg'] = $smtp->responseData;
 				$smtp->quit();
-
-				return false;
+				throw new Exception(sprintf(
+					"Mailer::smtpmail(): SMTP server response: '%s'",
+					$smtp->responseData
+				));
 			}
 		}
 
 		if (!$smtp->send($email)) {
-//			$this->error($smtp->msg_error);
-			$GLOBALS['php_errormsg'] = $smtp->responseData;
 			$smtp->quit();
-
-			return false;
+			throw new Exception(sprintf(
+				"Mailer::smtpmail(): SMTP server response: '%s'",
+				$smtp->responseData
+			));
 		}
 
 		$smtp->quit();
@@ -464,8 +478,20 @@ abstract class Mailer
 		return true;
 	}
 
-	public static function setError() {}
-	public static function getError() { return $GLOBALS['php_errormsg']; }
+	/**
+	 * Méthode de gestion des erreurs.
+	 * Activée lors de l'appel à la fonction mail() pour récupérer les
+	 * éventuelles erreurs et les retourner proprement sous forme d'exception.
+	 *
+	 * @param integer $errno
+	 * @param string  $error
+	 *
+	 * @throws Exception
+	 */
+	public function errorHandler($errno, $error)
+	{
+		throw new Exception("mail() function has returned the following error: '$error'");
+	}
 }
 
 class Email
