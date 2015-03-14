@@ -754,20 +754,15 @@ class Email
 	 */
 	public function hasRecipients()
 	{
-		$header_to  = $this->headers->get('To');
-		$header_cc  = $this->headers->get('Cc');
-		$header_bcc = $this->headers->get('Bcc');
-
 		$result = false;
 
-		if ($header_to != null && strlen($header_to->value) > 0) {
-			$result = true;
-		}
-		else if ($header_cc != null && strlen($header_cc->value) > 0) {
-			$result = true;
-		}
-		else if ($header_bcc != null && strlen($header_bcc->value) > 0) {
-			$result = true;
+		foreach (array('to', 'cc', 'bcc') as $name) {
+			$header = $this->headers->get($name);
+
+			if (!is_null($header) && $header->value != '') {
+				$result = true;
+				break;
+			}
 		}
 
 		return $result;
