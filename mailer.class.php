@@ -687,7 +687,7 @@ class Email
 	{
 		$email = $this->sender = trim($email);
 
-		if (!is_null($name)) {
+		if (!empty($name)) {
 			$email = sprintf('%s <%s>',
 				Mime::encodeHeader('From', $name, $this->charset, 'phrase'),
 				$email
@@ -732,7 +732,7 @@ class Email
 	{
 		$email = trim($email);
 
-		if (!is_null($name)) {
+		if (!empty($name)) {
 			$email = sprintf('%s <%s>',
 				Mime::encodeHeader($header, $name, $this->charset, 'phrase'),
 				$email
@@ -784,10 +784,10 @@ class Email
 	 */
 	public function setReplyTo($email = null, $name = null)
 	{
-		if (!is_null($email)) {
+		if (!empty($email)) {
 			$email = trim($email);
 
-			if (!is_null($name)) {
+			if (!empty($name)) {
 				$email = sprintf('%s <%s>',
 					Mime::encodeHeader('Reply-To', $name, $this->charset, 'phrase'),
 					$email
@@ -809,7 +809,7 @@ class Email
 	{
 		$this->headers->add(
 			'Disposition-Notification-To',
-			'<' . (!is_null($email) ? trim($email) : $this->sender) . '>'
+			'<' . (!empty($email) ? trim($email) : $this->sender) . '>'
 		);
 	}
 
@@ -823,7 +823,7 @@ class Email
 	{
 		$this->headers->set(
 			'Return-Path',
-			'<' . (!is_null($email) ? trim($email) : $this->sender) . '>'
+			'<' . (!empty($email) ? trim($email) : $this->sender) . '>'
 		);
 	}
 
