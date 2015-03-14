@@ -203,7 +203,7 @@ abstract class Mailer
 
 		if (self::$sendmail_mode) {
 			$email->headers->get('X-Mailer')->append(' (Sendmail mode)');
-			$result = self::sendmail($email->__toString(), null, $rPath);
+			$result = self::sendmail($email, null, $rPath);
 		}
 		else if (self::$smtp_mode) {
 			if (!class_exists('Mailer_SMTP')) {
@@ -234,7 +234,7 @@ abstract class Mailer
 			//
 			$email->headers->remove('Bcc');
 
-			$result = self::smtpmail($email->__toString(), $recipients, $rPath);
+			$result = self::smtpmail($email, $recipients, $rPath);
 		}
 		else {
 			$subject = $email->headers->get('Subject');
@@ -343,7 +343,7 @@ abstract class Mailer
 	/**
 	 * Envoi via sendmail
 	 *
-	 * @param string $email      Email à envoyer
+	 * @param Email  $email      Email à envoyer
 	 * @param string $recipients Adresses supplémentaires de destinataires
 	 * @param string $rPath      Adresse d’envoi (définit le return-path)
 	 *
@@ -375,7 +375,7 @@ abstract class Mailer
 			));
 		}
 
-		fputs($sendmail, preg_replace("/\r\n?/", MAILER_MIME_EOL, $email));
+		fputs($sendmail, preg_replace("/\r\n?/", MAILER_MIME_EOL, $email->__toString()));
 
 		if (($code = pclose($sendmail)) != 0) {
 			throw new Exception(sprintf(
@@ -390,7 +390,7 @@ abstract class Mailer
 	/**
 	 * Envoi via la classe smtp
 	 *
-	 * @param string $email      Email à envoyer
+	 * @param Email  $email      Email à envoyer
 	 * @param string $recipients Adresses des destinataires
 	 * @param string $rPath      Adresse d’envoi (définit le return-path)
 	 *
@@ -471,7 +471,7 @@ abstract class Mailer
 			}
 		}
 
-		if (!$smtp->send($email)) {
+		if (!$smtp->send($email->__toString())) {
 			$smtp->quit();
 			throw new Exception(sprintf(
 				"Mailer::smtpmail(): SMTP server response: '%s'",
