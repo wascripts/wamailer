@@ -687,6 +687,10 @@ class Email
 	{
 		$email = $this->sender = trim($email);
 
+		if (!$this->headers->get('Return-Path')) {
+			$this->setReturnPath($email);
+		}
+
 		if (!empty($name)) {
 			$email = sprintf('%s <%s>',
 				Mime::encodeHeader('From', $name, $this->charset, 'phrase'),
