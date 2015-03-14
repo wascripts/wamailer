@@ -177,7 +177,7 @@ class Mailer_SMTP
 			$this->hello($hostname);
 		}
 
-		if (!is_null($username) && !is_null($passwd)) {
+		if (!empty($username) && !empty($passwd)) {
 			return $this->authenticate($username, $passwd);
 		}
 
