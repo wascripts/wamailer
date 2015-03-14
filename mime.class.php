@@ -48,8 +48,8 @@ class Mime
 	{
 		$str = preg_replace('/\r\n?|\n/', "\r\n", $str);
 		$str = preg_replace(
-			'/([^\x09\x0A\x0D\x20-\x3C\x3E-\x7E]|[\x09\x20](?=\x0D\x0A|$))/e',
-			'sprintf(\'=%02X\', ord("\\1"));',
+			'/([^\x09\x0A\x0D\x20-\x3C\x3E-\x7E]|[\x09\x20](?=\x0D\x0A|$))/',
+			create_function('$m', 'return sprintf(\'=%02X\', ord($m[1]));'),
 			$str
 		);
 
@@ -195,7 +195,10 @@ class Mime
 
 				$tmp = substr($value, $pos, $tmplen);
 				if ($encoding == 'Q') {
-					$tmp = preg_replace("/([$charlist])/e", 'sprintf(\'=%02X\', ord("\\1"));', $tmp);
+					$tmp = preg_replace_callback("/([$charlist])/",
+						create_function('$m', 'return sprintf(\'=%02X\', ord($m[1]));'),
+						$tmp
+					);
 					$tmp = str_replace(' ', '_', $tmp);
 				}
 				else {
