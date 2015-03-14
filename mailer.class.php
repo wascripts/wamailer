@@ -184,6 +184,12 @@ abstract class Mailer
 
 		$email->headers->set('X-Mailer', sprintf(self::$signature, self::VERSION));
 
+		if (!$email->headers->get('To') && !$email->headers->get('Cc')) {
+			// Tous les destinataires sont en copie cachée. On ajoute quand
+			// même un en-tête To pour le mentionner.
+			$email->headers->set('To', 'undisclosed-recipients:;');
+		}
+
 		$rPath = $email->headers->get('Return-Path');
 		if (!is_null($rPath)) {
 			$rPath = trim($rPath->value, '<>');
