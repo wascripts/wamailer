@@ -72,16 +72,23 @@ class Mailer_SMTP
 	public  $debug      = false;
 
 	/**
-	 * Utilisation de la commande STARTTLS pour sécuriser la connexion.
-	 * Ignoré si la connexion est sécurisée en utilisant un des préfixes de
-	 * transport ssl ou tls supportés par PHP.
+	 * Options diverses.
+	 * Voir méthode Mailer_SMTP::options()
 	 *
-	 * @var boolean
+	 * @var array
 	 */
-	public  $startTLS   = false;
+	private $opts       = array(
+		/**
+		 * Utilisation de la commande STARTTLS pour sécuriser la connexion.
+		 * Ignoré si la connexion est sécurisée en utilisant un des préfixes de
+		 * transport ssl ou tls supportés par PHP.
+		 *
+		 * @var boolean
+		 */
+		'starttls' => false
+	);
 
 	private $fromCalled = false;
-
 	private $_responseCode;
 	private $_responseData;
 
@@ -90,6 +97,23 @@ class Mailer_SMTP
 		if (empty($this->host)) {
 			$this->host = ini_get('SMTP');
 			$this->port = ini_get('smtp_port');
+		}
+	}
+
+	/**
+	 * Définition des options d'utilisation
+	 *
+	 * @param array $opts
+	 */
+	public function options($opts)
+	{
+		if (is_array($opts)) {
+			// Alternative pour l'activation du débogage
+			if (!empty($opts['debug'])) {
+				$this->debug = $opts['debug'];
+			}
+
+			$this->opts = array_merge($this->opts, $opts);
 		}
 	}
 
@@ -121,7 +145,7 @@ class Mailer_SMTP
 
 		$startTLS = false;
 		if (!preg_match('#^(ssl|tls)(v[.0-9]+)?://#', $host)) {
-			$startTLS = $this->startTLS;
+			$startTLS = $this->opts['starttls'];
 		}
 
 		//

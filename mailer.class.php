@@ -412,40 +412,39 @@ abstract class Mailer
 		$port     = 25;
 		$username = null;
 		$passwd   = null;
-		$starttls = false;
-		$debug    = false;
+		$opts     = array();
 
 		if (is_array($server) && isset($server['server'])) {
-			if (!empty($server['username'])) {
+			if (isset($server['username'])) {
 				$username = $server['username'];
 			}
 
-			if (!empty($server['passwd'])) {
+			if (isset($server['passwd'])) {
 				$passwd = $server['passwd'];
 			}
 
-			if (!empty($server['debug'])) {
-				$debug = $server['debug'];
-			}
-
-			$starttls = !empty($server['starttls']);
-			$server   = $server['server'];
+			$host = $server['server'];
+			// D'autres entrées du tableau server peuvent correspondre à des options
+			// à transmettre à la classe smtp
+			$opts = $server;
+		}
+		else {
+			$host = $server;
 		}
 
-		if ($server == '') {
+		if ($host == '') {
 			throw new Exception("Mailer::smtpmail(): No valid SMTP server given");
 		}
 
-		if (preg_match('#^(.+):([0-9]+)$#', $server, $m)) {
-			$server = $m[1];
-			$port   = $m[2];
+		if (preg_match('#^(.+):([0-9]+)$#', $host, $m)) {
+			$host = $m[1];
+			$port = $m[2];
 		}
 
 		$smtp = new Mailer_SMTP();
-		$smtp->startTLS = $starttls;
-		$smtp->debug    = $debug;
+		$smtp->options($opts);
 
-		if (!$smtp->connect($server, $port, $username, $passwd)) {
+		if (!$smtp->connect($host, $port, $username, $passwd)) {
 			$smtp->quit();
 			throw new Exception(sprintf(
 				"Mailer::smtpmail(): SMTP server response: '%s'",
