@@ -252,14 +252,14 @@ class Mime
 		}
 
 		if (extension_loaded('fileinfo')) {
-			$info = new finfo(FILEINFO_MIME);
+			$info = new finfo(FILEINFO_MIME_TYPE);
 			$type = $info->file($filename);
 		}
 		else if (extension_loaded('mime_magic')) {
 			$type = mime_content_type($filename);
 		}
 		else if (function_exists('exec')) {
-			$type = exec(sprintf('file -biL %s 2>/dev/null',
+			$type = exec(sprintf('file -b --mime-type %s 2>/dev/null',
 				escapeshellarg($filename)),
 				$null,
 				$result
@@ -268,11 +268,6 @@ class Mime
 			if ($result !== 0 || !strpos($type, '/')) {
 				$type = '';
 			}
-/*			else {
-				if (strpos($type, ';')) {
-					list($type) = explode(';', $type);
-				}
-			}*/
 		}
 
 		if (empty($type)) {
