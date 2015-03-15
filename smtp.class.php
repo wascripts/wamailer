@@ -160,7 +160,7 @@ class Mailer_SMTP
 		// Code error   : 421
 		//
 		if ($startTLS) {
-			$this->put("STARTTLS\r\n");
+			$this->put('STARTTLS');
 			if (!$this->checkResponse(220)) {
 				return false;
 			}
@@ -196,12 +196,13 @@ class Mailer_SMTP
 	/**
 	 * Envoi d'une commande au serveur
 	 *
-	 * @param string $input
+	 * @param string $data
 	 */
-	public function put($input)
+	public function put($data)
 	{
-		$this->log($input);
-		fputs($this->socket, $input);
+		$data .= "\r\n";
+		$this->log($data);
+		fputs($this->socket, $data);
 	}
 
 	/**
@@ -264,9 +265,9 @@ class Mailer_SMTP
 		// Code success : 250
 		// Code error   : 500, 501, 504, 421
 		//
-		$this->put(sprintf("EHLO %s\r\n", $hostname));
+		$this->put(sprintf('EHLO %s', $hostname));
 		if (!$this->checkResponse(250)) {
-			$this->put(sprintf("HELO %s\r\n", $hostname));
+			$this->put(sprintf('HELO %s', $hostname));
 			if (!$this->checkResponse(250)) {
 				return false;
 			}
@@ -285,17 +286,17 @@ class Mailer_SMTP
 	 */
 	public function authenticate($username, $passwd)
 	{
-		$this->put("AUTH LOGIN\r\n");
+		$this->put('AUTH LOGIN');
 		if (!$this->checkResponse(334)) {
 			return false;
 		}
 
-		$this->put(base64_encode($username). "\r\n");
+		$this->put(base64_encode($username));
 		if (!$this->checkResponse(334)) {
 			return false;
 		}
 
-		$this->put(base64_encode($passwd) . "\r\n");
+		$this->put(base64_encode($passwd));
 		if (!$this->checkResponse(235)) {
 			return false;
 		}
@@ -323,7 +324,7 @@ class Mailer_SMTP
 		// Code failure : 552, 451, 452
 		// Code error   : 500, 501, 421
 		//
-		$this->put(sprintf("MAIL FROM:<%s>\r\n", $email));
+		$this->put(sprintf('MAIL FROM:<%s>', $email));
 
 		return $this->checkResponse(250);
 	}
@@ -351,7 +352,7 @@ class Mailer_SMTP
 		// Code failure : 550, 551, 552, 553, 450, 451, 452
 		// Code error   : 500, 501, 503, 421
 		//
-		$this->put(sprintf("RCPT TO:<%s>\r\n", $email));
+		$this->put(sprintf('RCPT TO:<%s>', $email));
 
 		return $strict ? $this->checkResponse(250) : $this->checkResponse(250, 251);
 	}
@@ -359,42 +360,32 @@ class Mailer_SMTP
 	/**
 	 * Envoie des données
 	 *
-	 * @param string $email
+	 * @param string $message
 	 *
 	 * @return boolean
 	 */
-	public function send($email)
+	public function send($message)
 	{
-		//
-		// Compatibilité Wamailer 2.x
-		// Si les entêtes et le corps de l’email sont fournis séparément,
-		// on les concatène.
-		//
-		if (func_num_args() == 2) {
-			$email  = rtrim($email);
-			$email .= "\r\n\r\n" . func_get_arg(1);
-		}
-
-		$email = preg_replace('/\r\n?|\n/', "\r\n", $email);
+		$message = preg_replace('/\r\n?|\n/', "\r\n", $message);
 
 		//
 		// Si un point se trouve en début de ligne, on le double pour éviter
 		// que le serveur ne l’interprète comme la fin de l’envoi.
 		//
-		$email = str_replace("\r\n.", "\r\n..", $email);
+		$message = str_replace("\r\n.", "\r\n..", $message);
 
 		//
 		// On indique au serveur que l’on va lui livrer les données
 		//
 		// Code intermédiaire : 354
 		//
-		$this->put("DATA\r\n");
+		$this->put('DATA');
 		if (!$this->checkResponse(354)) {
 			return false;
 		}
 
 		// On envoie l’email proprement dit
-		$this->put($email . "\r\n");
+		$this->put($message);
 
 		//
 		// On indique la fin des données au serveur
@@ -403,7 +394,7 @@ class Mailer_SMTP
 		// Code failure : 552, 554, 451, 452
 		// Code error   : 500, 501, 503, 421
 		//
-		$this->put("\r\n.\r\n");
+		$this->put('.');
 		if (!$this->checkResponse(250)) {
 			return false;
 		}
@@ -422,7 +413,7 @@ class Mailer_SMTP
 		 * Code success : 250
 		 * Code error   : 500, 421
 		 */
-		$this->put("NOOP\r\n");
+		$this->put('NOOP');
 
 		return $this->checkResponse(250);
 	}
@@ -438,7 +429,7 @@ class Mailer_SMTP
 		 * Code success : 250
 		 * Code error   : 500, 501, 504, 421
 		 */
-		$this->put("RSET\r\n");
+		$this->put('RSET');
 
 		return $this->checkResponse(250);
 	}
@@ -455,7 +446,7 @@ class Mailer_SMTP
 		 * Code error   : 500, 501, 502, 504, 421
 		 * Code failure : 550, 551, 553
 		 */
-		$this->put(sprintf("VRFY %s\r\n", $str));
+		$this->put(sprintf('VRFY %s', $str));
 
 		return $this->checkResponse(250, 251);
 	}
@@ -473,7 +464,7 @@ class Mailer_SMTP
 		 * Code failure : 500
 		 */
 		if (is_resource($this->socket)) {
-			$this->put("QUIT\r\n");
+			$this->put('QUIT');
 			fclose($this->socket);
 			$this->socket = null;
 		}
