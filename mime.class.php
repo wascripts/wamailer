@@ -247,7 +247,8 @@ class Mime
 	public static function getType($filename)
 	{
 		if (!is_readable($filename)) {
-			throw new Exception("Cannot read file '$filename'");
+			trigger_error("Cannot read file '$filename'", E_USER_WARNING);
+			return null;
 		}
 
 		if (extension_loaded('fileinfo')) {
