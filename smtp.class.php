@@ -32,28 +32,28 @@ class Mailer_SMTP
 	 *
 	 * @var string
 	 */
-	private $server;
+	private $host       = '';
 
 	/**
 	 * Port d'accès
 	 *
 	 * @var integer
 	 */
-	private $port;
+	private $port       = 25;
 
 	/**
 	 * Nom d'utilisateur pour l’authentification
 	 *
 	 * @var string
 	 */
-	private $username;
+	private $username   = '';
 
 	/**
 	 * Mot de passe pour l’authentification
 	 *
 	 * @var string
 	 */
-	private $passwd;
+	private $passwd     = '';
 
 	/**
 	 * Timeout de connexion
@@ -80,7 +80,6 @@ class Mailer_SMTP
 	 */
 	public  $startTLS   = false;
 
-	private $eol        = "\r\n";// pour la sortie standard
 	private $fromCalled = false;
 
 	private $_responseCode;
@@ -88,30 +87,26 @@ class Mailer_SMTP
 
 	public function __construct()
 	{
-		if (strncasecmp(PHP_OS, 'Win', 3) != 0) {
-			$this->eol = "\n";
-		}
-
-		if (is_null($this->server)) {
-			$this->server = ini_get('SMTP');
-			$this->port   = ini_get('smtp_port');
+		if (empty($this->host)) {
+			$this->host = ini_get('SMTP');
+			$this->port = ini_get('smtp_port');
 		}
 	}
 
 	/**
 	 * Établit la connexion au serveur SMTP
 	 *
-	 * @param string  $server   Nom ou IP du serveur
+	 * @param string  $host     Nom ou IP du serveur
 	 * @param integer $port     Port d'accès
 	 * @param string  $username Nom d'utilisateur pour l’authentification (si nécessaire)
 	 * @param string  $passwd   Mot de passe pour l’authentification (si nécessaire)
 	 *
 	 * @return boolean
 	 */
-	public function connect($server = null, $port = null, $username = null, $passwd = null)
+	public function connect($host = null, $port = null, $username = null, $passwd = null)
 	{
-		foreach (array('server', 'port', 'username', 'passwd') as $varname) {
-			if (is_null($$varname)) {
+		foreach (array('host', 'port', 'username', 'passwd') as $varname) {
+			if (empty($$varname)) {
 				$$varname = $this->{$varname};
 			}
 		}
@@ -125,7 +120,7 @@ class Mailer_SMTP
 		$this->_responseData = null;
 
 		$startTLS = false;
-		if (!preg_match('#^(ssl|tls)(v[.0-9]+)?://#', $server)) {
+		if (!preg_match('#^(ssl|tls)(v[.0-9]+)?://#', $host)) {
 			$startTLS = $this->startTLS;
 		}
 
@@ -134,7 +129,7 @@ class Mailer_SMTP
 		//
 		$context = stream_context_create();
 		$this->socket = stream_socket_client(
-			sprintf('%s:%d', $server, $port),
+			sprintf('%s:%d', $host, $port),
 			$errno,
 			$errstr,
 			$this->timeout,
