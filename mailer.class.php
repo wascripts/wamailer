@@ -494,7 +494,7 @@ abstract class Mailer
 	 *
 	 * @throws Exception
 	 */
-	public function errorHandler($errno, $error)
+	public static function errorHandler($errno, $error)
 	{
 		throw new Exception("mail() function has returned the following error: '$error'");
 	}
