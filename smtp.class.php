@@ -63,14 +63,18 @@ class Mailer_SMTP
 	public  $timeout    = 30;
 
 	/**
-	 * Timeout de connexion
+	 * Débogage.
+	 * true pour afficher sur la sortie standard ou bien toute valeur utilisable
+	 * avec call_user_func()
 	 *
 	 * @var boolean|callable
 	 */
 	public  $debug      = false;
 
 	/**
-	 * Timeout de connexion
+	 * Utilisation de la commande STARTTLS pour sécuriser la connexion.
+	 * Ignoré si la connexion est sécurisée en utilisant un des préfixes de
+	 * transport ssl ou tls supportés par PHP.
 	 *
 	 * @var boolean
 	 */
