@@ -536,4 +536,9 @@ class Mailer_SMTP
 				break;
 		}
 	}
+
+	public function __destruct()
+	{
+		$this->quit();
+	}
 }
