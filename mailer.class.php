@@ -14,7 +14,6 @@ if (!($hostname = @php_uname('n'))) {
 }
 
 define('MAILER_HOSTNAME',  $hostname);
-define('MAILER_MIME_EOL',  (strncasecmp(PHP_OS, 'Win', 3) != 0) ? "\n" : "\r\n");
 define('PHP_USE_SENDMAIL', (ini_get('sendmail_path') != '') ? true : false);
 unset($hostname);
 
@@ -298,8 +297,8 @@ abstract class Mailer
 			list($headers, $message) = explode("\r\n\r\n", $email->__toString(), 2);
 
 			if (PHP_USE_SENDMAIL) {
-				$headers = str_replace("\r\n", MAILER_MIME_EOL, $headers);
-				$message = str_replace("\r\n", MAILER_MIME_EOL, $message);
+				$headers = str_replace("\r\n", PHP_EOL, $headers);
+				$message = str_replace("\r\n", PHP_EOL, $message);
 
 				/**
 				 * PHP ne laisse passer les longs entêtes Subject et To que
@@ -315,10 +314,8 @@ abstract class Mailer
 				 *      http://cvs.php.net/php-src/ext/standard/mail.c
 				 * @see PHP Bug 24805 at http://bugs.php.net/bug.php?id=24805
 				 */
-				if (strncasecmp(PHP_OS, 'Win', 3) != 0) {
-					$subject = str_replace("\r\n\t", ' ', $subject);
-					$recipients = str_replace("\r\n\t", ' ', $recipients);
-				}
+				$subject = str_replace("\r\n\t", ' ', $subject);
+				$recipients = str_replace("\r\n\t", ' ', $recipients);
 			}
 
 			set_error_handler(array('Mailer', 'errorHandler'));
@@ -375,7 +372,7 @@ abstract class Mailer
 			));
 		}
 
-		fputs($sendmail, preg_replace("/\r\n?/", MAILER_MIME_EOL, $email->__toString()));
+		fputs($sendmail, str_replace("\r\n", PHP_EOL, $email->__toString()));
 
 		if (($code = pclose($sendmail)) != 0) {
 			throw new Exception(sprintf(
