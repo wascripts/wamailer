@@ -380,7 +380,7 @@ abstract class Mailer
 			));
 		}
 
-		fputs($sendmail, str_replace("\r\n", PHP_EOL, $email->__toString()));
+		fwrite($sendmail, str_replace("\r\n", PHP_EOL, $email->__toString()));
 
 		if (($code = pclose($sendmail)) != 0) {
 			throw new Exception(sprintf(

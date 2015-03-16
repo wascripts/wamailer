@@ -246,7 +246,7 @@ class Mailer_SMTP
 	{
 		$data .= "\r\n";
 		$this->log($data);
-		fputs($this->socket, $data);
+		fwrite($this->socket, $data);
 	}
 
 	/**
