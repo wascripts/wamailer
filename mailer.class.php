@@ -102,6 +102,13 @@ abstract class Mailer
 	public static $smtp_server = 'localhost';
 
 	/**
+	 * Utilisé en interne pour stocker l'instance de Mailer_SMTP
+	 *
+	 * @var Mailer_SMTP
+	 */
+	private static $smtp;
+
+	/**
 	 * Active ou désactive l’utilisation directe de sendmail pour l’envoi des emails
 	 *
 	 * @param boolean $use Active/désactive le mode sendmail
@@ -124,6 +131,7 @@ abstract class Mailer
 	 */
 	public static function useSMTP($use, $server = null)
 	{
+		self::$smtp = null;
 		self::$smtp_mode = $use;
 
 		if (!is_null($server)) {
@@ -405,19 +413,19 @@ abstract class Mailer
 			$rPath = ini_get('sendmail_from');
 		}
 
-		$server   = self::$smtp_server;
-		$port     = 25;
-		$username = null;
-		$passwd   = null;
-		$opts     = array();
+		$server    = self::$smtp_server;
+		$port      = 25;
+		$username  = null;
+		$passwd    = null;
+		$keepalive = false;
+		$opts      = array();
 
 		if (is_array($server) && isset($server['server'])) {
-			if (isset($server['username'])) {
-				$username = $server['username'];
-			}
-
-			if (isset($server['passwd'])) {
-				$passwd = $server['passwd'];
+			foreach (array('username','passwd','keepalive') as $optname) {
+				if (isset($server[$optname])) {
+					$$optname = $server[$optname];
+					unset($server[$optname]);
+				}
 			}
 
 			$host = $server['server'];
@@ -438,10 +446,16 @@ abstract class Mailer
 			$port = $m[2];
 		}
 
-		$smtp = new Mailer_SMTP();
-		$smtp->options($opts);
+		if (!(self::$smtp instanceof Mailer_SMTP)) {
+			$smtp = new Mailer_SMTP();
+			$smtp->options($opts);
+			self::$smtp = $smtp;
+		}
+		else {
+			$smtp = self::$smtp;
+		}
 
-		if (!$smtp->connect($host, $port, $username, $passwd)) {
+		if (!$smtp->isConnected() && !$smtp->connect($host, $port, $username, $passwd)) {
 			$smtp->quit();
 			throw new Exception(sprintf(
 				"Mailer::smtpmail(): SMTP server response: '%s'",
@@ -475,7 +489,9 @@ abstract class Mailer
 			));
 		}
 
-		$smtp->quit();
+		if (!$keepalive) {
+			$smtp->quit();
+		}
 
 		return true;
 	}
