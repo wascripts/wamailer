@@ -85,7 +85,17 @@ class Mailer_SMTP
 		 *
 		 * @var boolean
 		 */
-		'starttls' => false
+		'starttls' => false,
+
+		/**
+		 * Utilisés pour la création du contexte de flux avec stream_context_create()
+		 *
+		 * @link http://php.net/stream_context_create
+		 *
+		 * @var array
+		 */
+		'stream_context_options' => null,
+		'stream_context_params'  => null
 	);
 
 	private $fromCalled = false;
@@ -151,7 +161,17 @@ class Mailer_SMTP
 		//
 		// Ouverture du socket de connexion au serveur SMTP
 		//
-		$context = stream_context_create();
+		$params = array();
+		if (is_array($this->opts['stream_context_options'])) {
+			$params[] = $this->opts['stream_context_options'];
+
+			if (is_array($this->opts['stream_context_params'])) {
+				$params[] = $this->opts['stream_context_params'];
+			}
+		}
+
+		$context = call_user_func_array('stream_context_create', $params);
+
 		$this->socket = stream_socket_client(
 			sprintf('%s:%d', $host, $port),
 			$errno,
