@@ -443,6 +443,8 @@ class Mailer_SMTP
 			return false;
 		}
 
+		$this->fromCalled = false;
+
 		return true;
 	}
 
