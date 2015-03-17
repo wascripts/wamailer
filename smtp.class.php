@@ -98,8 +98,29 @@ class Mailer_SMTP
 		'stream_context_params'  => null
 	);
 
+	/**
+	 * Si la méthode from() n'a pas été appelée, la méthode to() le fait
+	 * automatiquement en utilisant comme valeur l'option PHP 'sendmail_from'
+	 * Réinitialisé à false après chaque transaction.
+	 *
+	 * @var boolean
+	 */
 	private $fromCalled = false;
+
+	/**
+	 * Dernier code de réponse retourné par le serveur.
+	 * Accessible en lecture sous la forme $obj->responseCode
+	 *
+	 * @var integer
+	 */
 	private $_responseCode;
+
+	/**
+	 * Dernier message de réponse retourné par le serveur.
+	 * Accessible en lecture sous la forme $obj->responseData
+	 *
+	 * @var string
+	 */
 	private $_responseData;
 
 	public function __construct()
