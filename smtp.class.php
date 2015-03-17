@@ -113,7 +113,16 @@ class Mailer_SMTP
 		 *
 		 * @var boolean
 		 */
-		'pipelining' => false
+		'pipelining' => false,
+
+		/**
+		 * Liste des méthodes d'authentification utilisables.
+		 * Utile si on veut forcer l'utilisation d'une ou plusieurs méthodes au choix.
+		 * Les méthodes supportées par la classe sont CRAM-MD5, LOGIN et PLAIN.
+		 *
+		 * @var string
+		 */
+		'auth_method' => ''
 	);
 
 	/**
@@ -465,22 +474,68 @@ class Mailer_SMTP
 	 */
 	public function authenticate($username, $passwd)
 	{
-		$this->put('AUTH LOGIN');
-		if (!$this->checkResponse(334)) {
-			return false;
+		if (!($available_methods = $this->hasSupport('AUTH'))) {
+			throw new Exception("Mailer_SMTP::authenticate(): SMTP server doesn't support authentication");
 		}
 
-		$this->put(base64_encode($username));
-		if (!$this->checkResponse(334)) {
-			return false;
+		$available_methods = explode(' ', $available_methods);
+		$supported_methods = array('CRAM-MD5','LOGIN','PLAIN');
+
+		if (!empty($this->opts['auth_method'])) {
+			$force_methods = explode(' ', $this->opts['auth_method']);
+			$supported_methods = array_intersect($force_methods, $supported_methods);
 		}
 
-		$this->put(base64_encode($passwd));
-		if (!$this->checkResponse(235)) {
-			return false;
+		foreach ($supported_methods as $method) {
+			if (!in_array($method, $available_methods)) {
+				continue;
+			}
+
+			if ($method == 'CRAM-MD5' && !function_exists('hash_hmac')) {
+				continue;
+			}
+
+			$this->put(sprintf('AUTH %s', $method));
+
+			if (!$this->checkResponse(334)) {
+				return false;
+			}
+
+			switch ($method) {
+				case 'CRAM-MD5':
+					$challenge = base64_decode(substr(rtrim($this->responseData), 4));
+
+					$this->put(base64_encode(sprintf('%s %s',
+						$username,
+						hash_hmac('md5', $challenge, $passwd)
+					)));
+					if (!$this->checkResponse(235)) {
+						return false;
+					}
+					break;
+				case 'LOGIN':
+					$this->put(base64_encode($username));
+					if (!$this->checkResponse(334)) {
+						return false;
+					}
+
+					$this->put(base64_encode($passwd));
+					if (!$this->checkResponse(235)) {
+						return false;
+					}
+					break;
+				case 'PLAIN':
+					$this->put(base64_encode("\0$username\0$passwd"));
+					if (!$this->checkResponse(235)) {
+						return false;
+					}
+					break;
+			}
+
+			return true;
 		}
 
-		return true;
+		throw new Exception("Mailer_SMTP::authenticate(): Cannot select an authentication mechanism");
 	}
 
 	/**
