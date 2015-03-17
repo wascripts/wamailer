@@ -95,7 +95,25 @@ class Mailer_SMTP
 		 * @var array
 		 */
 		'stream_context_options' => null,
-		'stream_context_params'  => null
+		'stream_context_params'  => null,
+
+		/**
+		 * Le pipelining est la capacité à envoyer un groupe de commandes sans
+		 * attendre la réponse du serveur entre chaque commande.
+		 * Le bénéfice est un gain de temps dans le dialogue opéré entre le
+		 * client et le serveur.
+		 * Seules certaines commandes sont concernées par ce mécanisme (RSET,
+		 * MAIL FROM, SEND FROM, SOML FROM, SAML FROM, et RCPT TO).
+		 * Les autres commandes imposent forcément une réponse immédiate du
+		 * serveur (ou la fin de la connexion, dans le cas de QUIT).
+		 * Cette option est ignorée si le serveur SMTP ne supporte pas
+		 * l'extension PIPELINING.
+		 *
+		 * @see RFC 2920
+		 *
+		 * @var boolean
+		 */
+		'pipelining' => false
 	);
 
 	/**
@@ -131,6 +149,21 @@ class Mailer_SMTP
 	 * @var string
 	 */
 	private $_responseData;
+
+	/**
+	 * Dernière commande transmise au serveur.
+	 * Accessible en lecture sous la forme $obj->lastCommand
+	 *
+	 * @var string
+	 */
+	private $_lastCommand;
+
+	/**
+	 * Groupe de commandes en cours de traitement
+	 *
+	 * @var array
+	 */
+	private $pipeline = array();
 
 	public function __construct()
 	{
@@ -182,6 +215,9 @@ class Mailer_SMTP
 
 		$this->_responseCode = null;
 		$this->_responseData = null;
+		$this->fromCalled    = false;
+		$this->lastCommand   = null;
+		$this->pipeline      = array();
 
 		$startTLS = false;
 		if (!preg_match('#^(ssl|tls)(v[.0-9]+)?://#', $host)) {
@@ -274,37 +310,10 @@ class Mailer_SMTP
 	 */
 	public function put($data)
 	{
+		$this->_lastCommand = (strpos($data, ':')) ? strtok($data, ':') : strtok($data, ' ');
 		$data .= "\r\n";
 		$this->log($data);
 		fwrite($this->socket, $data);
-	}
-
-	/**
-	 * Récupère le code de réponse du serveur
-	 *
-	 * @return integer
-	 */
-	public function get()
-	{
-		if (!is_resource($this->socket)) {
-			trigger_error('Connection lost', E_USER_WARNING);
-			return false;
-		}
-
-		$this->_responseData = '';
-
-		while (!feof($this->socket)) {
-			$data = fgets($this->socket, 512);
-			$this->log($data);
-			$this->_responseData .= $data;
-
-			if (substr($data, 3, 1) == ' ') {
-				$this->_responseCode = substr($data, 0, 3);
-				break;
-			}
-		}
-
-		return $this->_responseCode;
 	}
 
 	/**
@@ -314,18 +323,49 @@ class Mailer_SMTP
 	 */
 	public function checkResponse()
 	{
-		$codesOK = array();
+		if (!$this->isConnected()) {
+			trigger_error('Connection lost', E_USER_WARNING);
+			return false;
+		}
+
+		$codes = array();
 		$numargs = func_num_args();
 
 		for ($i = 0; $i < $numargs; $i++) {
 			$arg = func_get_arg($i);
-			$codesOK[] = $arg;
+			$codes[] = $arg;
 		}
 
-		$this->get();
+		$this->pipeline[] = array('codes' => $codes, 'cmd' => $this->_lastCommand);
 
-		if (!in_array($this->_responseCode, $codesOK)) {
-			return false;
+		if ($this->hasSupport('pipelining') && $this->opts['pipelining'] &&
+			in_array($this->_lastCommand, array(
+				'RSET','MAIL FROM','SEND FROM','SOML FROM','SAML FROM','RCPT TO'
+			))
+		) {
+			return true;
+		}
+
+		$pipeline = $this->pipeline;
+		$this->pipeline = array();
+
+		for ($i = 0; $i < count($pipeline); $i++) {
+			$this->_responseData = '';
+
+			while (!feof($this->socket)) {
+				$data = fgets($this->socket, 512);
+				$this->log($data);
+				$this->_responseData .= $data;
+
+				if (substr($data, 3, 1) == ' ') {
+					$this->_responseCode = substr($data, 0, 3);
+					break;
+				}
+			}
+
+			if (!in_array($this->_responseCode, $pipeline[$i]['codes'])) {
+				return false;
+			}
 		}
 
 		return true;
@@ -625,6 +665,7 @@ class Mailer_SMTP
 		switch ($name) {
 			case 'responseCode':
 			case 'responseData':
+			case 'lastCommand':
 				return $this->{'_'.$name};
 				break;
 		}
