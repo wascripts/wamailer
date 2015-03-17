@@ -99,6 +99,15 @@ class Mailer_SMTP
 	);
 
 	/**
+	 * Liste des extensions SMTP supportées.
+	 *
+	 * @see self::getExtensions() self::hello()
+	 *
+	 * @var array
+	 */
+	private $extensions = array();
+
+	/**
 	 * Si la méthode from() n'a pas été appelée, la méthode to() le fait
 	 * automatiquement en utilisant comme valeur l'option PHP 'sendmail_from'
 	 * Réinitialisé à false après chaque transaction.
@@ -277,9 +286,17 @@ class Mailer_SMTP
 	 */
 	public function get()
 	{
-		while ($data = fgets($this->socket, 512)) {
+		if (!is_resource($this->socket)) {
+			trigger_error('Connection lost', E_USER_WARNING);
+			return false;
+		}
+
+		$this->_responseData = '';
+
+		while (!feof($this->socket)) {
+			$data = fgets($this->socket, 512);
 			$this->log($data);
-			$this->_responseData = rtrim($data);
+			$this->_responseData .= $data;
 
 			if (substr($data, 3, 1) == ' ') {
 				$this->_responseCode = substr($data, 0, 3);
@@ -307,8 +324,7 @@ class Mailer_SMTP
 
 		$this->get();
 
-		if (!in_array($this->_responseCode, $codesOK)) {// TODO afficher erreur comme ds wamailer 2.x ?
-
+		if (!in_array($this->_responseCode, $codesOK)) {
 			return false;
 		}
 
@@ -336,9 +352,63 @@ class Mailer_SMTP
 			if (!$this->checkResponse(250)) {
 				return false;
 			}
+
+			return true;
+		}
+
+		// On récupère la liste des extensions supportées par ce serveur
+		$this->extensions = array();
+		$lines = explode("\r\n", trim($this->_responseData));
+
+		foreach ($lines as $line) {
+			$line  = substr($line, 4);// on retire le code réponse
+			// La RFC 5321 ne précise pas la casse des noms d'extension,
+			// on normalise en haut de casse
+			$name  = strtoupper(strtok($line, ' '));
+			$space = strpos($line, ' ');
+			$this->extensions[$name] = ($space !== false)
+				? strtoupper(substr($line, $space+1)) : true;
 		}
 
 		return true;
+	}
+
+	/**
+	 * Retourne la liste des extensions supportées par le serveur SMTP.
+	 * Les noms des extensions, ainsi que les éventuels paramètres, sont
+	 * normalisés en haut de casse. Exemple :
+	 * [
+	 *     'VRFY' => true,
+	 *     'SIZE' => 35651584,
+	 *     'AUTH' => 'PLAIN LOGIN',
+	 *     '8BITMIME' => true
+	 * ]
+	 *
+	 * @return array
+	 */
+	public function getExtensions()
+	{
+		return $this->extensions;
+	}
+
+	/**
+	 * Indique si l'extension ciblée est supportée par le serveur SMTP.
+	 * Si l'extension possède des paramètres (par exemple, AUTH donne aussi la
+	 * liste des méthodes supportées), ceux-ci sont retournés au lieu de true
+	 *
+	 * @param string $name Nom de l'extension (insensible à la casse)
+	 *
+	 * @return mixed
+	 */
+	public function hasSupport($name)
+	{
+		$name = strtoupper($name);
+
+		if (isset($this->extensions[$name])) {
+			return $this->extensions[$name];
+		}
+
+		return false;
 	}
 
 	/**
