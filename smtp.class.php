@@ -270,6 +270,10 @@ class Mailer_SMTP
 		// Code error   : 421
 		//
 		if ($startTLS) {
+			if (!$this->hasSupport('STARTTLS')) {
+				throw new Exception("Mailer_SMTP::connect(): SMTP server doesn't support STARTTLS command");
+			}
+
 			$this->put('STARTTLS');
 			if (!$this->checkResponse(220)) {
 				return false;
@@ -280,7 +284,7 @@ class Mailer_SMTP
 				true,
 				STREAM_CRYPTO_METHOD_TLS_CLIENT
 			)) {
-				return false;
+				throw new Exception("Mailer_SMTP::connect(): Cannot enable TLS encryption");
 			}
 
 			$this->hello($hostname);
