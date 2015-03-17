@@ -225,7 +225,7 @@ class Mailer_SMTP
 		$this->_responseCode = null;
 		$this->_responseData = null;
 		$this->fromCalled    = false;
-		$this->lastCommand   = null;
+		$this->_lastCommand  = null;
 		$this->pipeline      = array();
 
 		$startTLS = false;
