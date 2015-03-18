@@ -896,6 +896,9 @@ class Email
 		return $this->_textPart;
 	}
 
+	/**
+	 * Supprime la partie texte de l'email
+	 */
 	public function removeTextBody()
 	{
 		$this->_textPart = null;
@@ -923,6 +926,9 @@ class Email
 		return $this->_htmlPart;
 	}
 
+	/**
+	 * Supprime la partie HTML de l'email
+	 */
 	public function removeHTMLBody()
 	{
 		$this->_htmlPart = null;
@@ -985,6 +991,15 @@ class Email
 		$this->message_txt = '';
 
 		return $attach;
+	}
+
+	/**
+	 * Supprime les fichiers joints à l'email
+	 */
+	public function removeAttachments()
+	{
+		$this->_attachParts = array();
+		$this->message_txt = '';
 	}
 
 	/**
