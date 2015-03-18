@@ -323,10 +323,21 @@ class Mailer_SMTP
 	 */
 	public function put($data)
 	{
+		if (!$this->isConnected()) {
+			throw new Exception("Mailer_SMTP::put(): Connection was closed!");
+		}
+
 		$this->_lastCommand = (strpos($data, ':')) ? strtok($data, ':') : strtok($data, ' ');
 		$data .= "\r\n";
 		$this->log($data);
-		fwrite($this->socket, $data);
+
+		if (!fwrite($this->socket, $data)) {
+			$md = stream_get_meta_data($this->socket);
+
+			if ($md['timed_out']) {
+				throw new Exception("Mailer_SMTP::put(): Connection timed out!");
+			}
+		}
 	}
 
 	/**
@@ -337,8 +348,7 @@ class Mailer_SMTP
 	public function checkResponse()
 	{
 		if (!$this->isConnected()) {
-			trigger_error('Connection lost', E_USER_WARNING);
-			return false;
+			throw new Exception("Mailer_SMTP::checkResponse(): Connection was closed!");
 		}
 
 		$codes = array();
@@ -365,16 +375,24 @@ class Mailer_SMTP
 		for ($i = 0; $i < count($pipeline); $i++) {
 			$this->_responseData = '';
 
-			while (!feof($this->socket)) {
-				$data = fgets($this->socket, 512);
-				$this->log($data);
-				$this->_responseData .= $data;
+			do {
+				$data = fgets($this->socket);
 
-				if (substr($data, 3, 1) == ' ') {
-					$this->_responseCode = substr($data, 0, 3);
+				if (!$data) {
+					$md = stream_get_meta_data($this->socket);
+
+					if ($md['timed_out']) {
+						throw new Exception("Mailer_SMTP::checkResponse(): Connection timed out!");
+					}
+
 					break;
 				}
+
+				$this->log($data);
+				$this->_responseCode  = substr($data, 0, 3);
+				$this->_responseData .= $data;
 			}
+			while (!feof($this->socket) && $data[3] != ' ');
 
 			if (!in_array($this->_responseCode, $pipeline[$i]['codes'])) {
 				return false;
