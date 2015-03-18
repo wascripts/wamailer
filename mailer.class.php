@@ -714,7 +714,7 @@ class Email
 	}
 
 	/**
-	 * @param string $email Email du destinataire ou tableau contenant la liste des destinataires
+	 * @param string $email Email du destinataire
 	 * @param string $name  Personnalisation du nom du destinataire
 	 */
 	public function addRecipient($email, $name = null)
@@ -723,7 +723,7 @@ class Email
 	}
 
 	/**
-	 * @param string $email Email du destinataire ou tableau contenant la liste des destinataires
+	 * @param string $email Email du destinataire
 	 * @param string $name  Personnalisation du nom du destinataire
 	 */
 	public function addCCRecipient($email, $name = null)
@@ -732,7 +732,7 @@ class Email
 	}
 
 	/**
-	 * @param string $email Email du destinataire ou tableau contenant la liste des destinataires
+	 * @param string $email Email du destinataire
 	 */
 	public function addBCCRecipient($email)
 	{
@@ -740,7 +740,7 @@ class Email
 	}
 
 	/**
-	 * @param string $email  Email du destinataire ou tableau contenant la liste des destinataires
+	 * @param string $email  Email du destinataire
 	 * @param string $name   Personnalisation du nom du destinataire
 	 * @param string $header Nom de l’en-tête concerné (parmi To, Cc et Bcc)
 	 */
