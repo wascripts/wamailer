@@ -465,7 +465,8 @@ class Mailer_SMTP
 	}
 
 	/**
-	 * Authentification auprès du serveur (mode LOGIN uniquement)
+	 * Authentification auprès du serveur.
+	 * Les méthodes CRAM-MD5, LOGIN et PLAIN sont supportées.
 	 *
 	 * @param string $username
 	 * @param string $passwd
@@ -539,14 +540,14 @@ class Mailer_SMTP
 	}
 
 	/**
-	 * Envoit la commande MAIL FROM
-	 * Ceci indique au serveur SMTP l’adresse email expéditrice
+	 * Envoie la commande MAIL FROM
 	 *
-	 * @param string $email
+	 * @param string $email  Adresse email de l'expéditeur
+	 * @param string $params Paramètres additionnels
 	 *
 	 * @return boolean
 	 */
-	public function from($email = null)
+	public function from($email = null, $params = null)
 	{
 		$this->fromCalled = true;
 		if (is_null($email)) {
@@ -558,24 +559,24 @@ class Mailer_SMTP
 		// Code failure : 552, 451, 452
 		// Code error   : 500, 501, 421
 		//
-		$this->put(sprintf('MAIL FROM:<%s>', $email));
+		$params = (!empty($params)) ? ' ' . $params : '';
+		$this->put(sprintf('MAIL FROM:<%s>%s', $email, $params));
 
 		return $this->checkResponse(250);
 	}
 
 	/**
-	 * Envoit la commande RCPT TO
-	 * Ceci indique au serveur SMTP l’adresse email du destinataire
+	 * Envoie la commande RCPT TO
 	 * Cette commande doit être invoquée autant de fois qu’il y a de destinataire.
 	 * Si la méthode from() n’a pas été appelée auparavant, elle est appelée
 	 * automatiquement.
 	 *
-	 * @param string  $email
-	 * @param boolean $strict (si true, retourne true uniquement si code 250)
+	 * @param string $email  Adresse email du destinataire
+	 * @param string $params Paramètres additionnels
 	 *
 	 * @return boolean
 	 */
-	public function to($email, $strict = false)
+	public function to($email, $params = null)
 	{
 		if (!$this->fromCalled) {
 			$this->from();
@@ -586,9 +587,10 @@ class Mailer_SMTP
 		// Code failure : 550, 551, 552, 553, 450, 451, 452
 		// Code error   : 500, 501, 503, 421
 		//
-		$this->put(sprintf('RCPT TO:<%s>', $email));
+		$params = (!empty($params)) ? ' ' . $params : '';
+		$this->put(sprintf('RCPT TO:<%s>%s', $email, $params));
 
-		return $strict ? $this->checkResponse(250) : $this->checkResponse(250, 251);
+		return $this->checkResponse(250, 251);
 	}
 
 	/**
