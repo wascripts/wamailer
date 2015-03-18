@@ -122,7 +122,7 @@ class Mailer_SMTP
 		 *
 		 * @var string
 		 */
-		'auth_method' => ''
+		'auth_methods' => ''
 	);
 
 	/**
@@ -481,8 +481,8 @@ class Mailer_SMTP
 		$available_methods = explode(' ', $available_methods);
 		$supported_methods = array('CRAM-MD5','LOGIN','PLAIN');
 
-		if (!empty($this->opts['auth_method'])) {
-			$force_methods = explode(' ', $this->opts['auth_method']);
+		if (!empty($this->opts['auth_methods'])) {
+			$force_methods = explode(' ', $this->opts['auth_methods']);
 			$supported_methods = array_intersect($force_methods, $supported_methods);
 		}
 
