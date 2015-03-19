@@ -723,13 +723,13 @@ class Mailer_SMTP
 	public function verify($str)
 	{
 		/**
-		 * Code success : 250, 251
+		 * Code success : 250, 251, 252
 		 * Code error   : 500, 501, 502, 504, 421
 		 * Code failure : 550, 551, 553
 		 */
 		$this->put(sprintf('VRFY %s', $str));
 
-		return $this->checkResponse(250, 251);
+		return $this->checkResponse(250, 251, 252);
 	}
 
 	/**
