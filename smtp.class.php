@@ -185,7 +185,7 @@ class Mailer_SMTP
 	 *
 	 * @var string
 	 */
-	protected $hostname = '';
+	public $hostname = '';
 
 	public function __construct()
 	{

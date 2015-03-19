@@ -588,7 +588,7 @@ class Email
 	 *
 	 * @var string
 	 */
-	protected $hostname = '';
+	public $hostname = '';
 
 	/**
 	 * Constructeur de classe
