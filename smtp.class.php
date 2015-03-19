@@ -461,8 +461,8 @@ class Mailer_SMTP
 
 		foreach ($lines as $line) {
 			$line  = substr($line, 4);// on retire le code réponse
-			// La RFC 5321 ne précise pas la casse des noms d'extension,
-			// on normalise en haut de casse
+			// La RFC 5321 ne précise pas la casse des noms d’extension.
+			// On normalise en haut de casse.
 			$name  = strtoupper(strtok($line, ' '));
 			$space = strpos($line, ' ');
 			$this->extensions[$name] = ($space !== false)
@@ -640,7 +640,7 @@ class Mailer_SMTP
 	}
 
 	/**
-	 * Envoie des données
+	 * Envoie les données
 	 *
 	 * @param string $message
 	 *
@@ -687,7 +687,7 @@ class Mailer_SMTP
 	}
 
 	/**
-	 * Envoi la commande NOOP
+	 * Envoie la commande NOOP
 	 *
 	 * @return boolean
 	 */
@@ -703,7 +703,7 @@ class Mailer_SMTP
 	}
 
 	/**
-	 * Envoi la commande RSET
+	 * Envoie la commande RSET
 	 *
 	 * @return boolean
 	 */
@@ -719,7 +719,7 @@ class Mailer_SMTP
 	}
 
 	/**
-	 * Envoi la commande VRFY
+	 * Envoie la commande VRFY
 	 *
 	 * @return boolean
 	 */
@@ -736,13 +736,13 @@ class Mailer_SMTP
 	}
 
 	/**
-	 * Envoi la commande QUIT
+	 * Envoie la commande QUIT
 	 * Termine le dialogue avec le serveur SMTP et ferme le socket de connexion
 	 */
 	public function quit()
 	{
 		/**
-		 * Comme on est poli, on dit au revoir au serveur avec la commande adéquat QUIT
+		 * Comme on est poli, on dit au revoir au serveur avec la commande QUIT
 		 *
 		 * Code success : 221
 		 * Code failure : 500
@@ -754,6 +754,9 @@ class Mailer_SMTP
 		}
 	}
 
+	/**
+	 * @param string $str
+	 */
 	private function log($str)
 	{
 		if ($this->debug) {
