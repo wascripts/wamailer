@@ -371,6 +371,7 @@ class Mailer_SMTP
 
 		$pipeline = $this->pipeline;
 		$this->pipeline = array();
+		$result = true;
 
 		for ($i = 0; $i < count($pipeline); $i++) {
 			$this->_responseData = '';
@@ -395,11 +396,11 @@ class Mailer_SMTP
 			while (!feof($this->socket) && $data[3] != ' ');
 
 			if (!in_array($this->_responseCode, $pipeline[$i]['codes'])) {
-				return false;
+				$result = false;
 			}
 		}
 
-		return true;
+		return $result;
 	}
 
 	/**
