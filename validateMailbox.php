@@ -102,7 +102,7 @@ function validateMailbox($emailList, &$return_errors = null)
 					foreach ($mailboxList as $mailbox) {
 						$email = $mailbox . '@' . $domain;
 
-						if (!$smtp->to($email, true)) {
+						if (!$smtp->to($email)) {
 							$return_errors[$email] = $smtp->responseData;
 						}
 					}
