@@ -137,15 +137,23 @@ abstract class Mailer
 	 *
 	 * @param boolean $use    Active/désactive le mode SMTP
 	 * @param mixed   $server Informations de connexion au serveur (voir la propriété $smtp_server)
+	 *
+	 * @return Mailer_SMTP
 	 */
 	public static function useSMTP($use, $server = null)
 	{
-		self::$smtp = null;
+		if (!class_exists('Mailer_SMTP')) {
+			require dirname(__FILE__) . '/smtp.class.php';
+		}
+
+		self::$smtp = ($use) ? new Mailer_SMTP() : null;
 		self::$smtp_mode = $use;
 
 		if (!is_null($server)) {
 			self::$smtp_server = $server;
 		}
+
+		return self::$smtp;
 	}
 
 	/**
@@ -414,14 +422,11 @@ abstract class Mailer
 	 */
 	public static function smtpmail($email, $recipients, $rPath = null)
 	{
-		if (!class_exists('Mailer_SMTP')) {
-			require dirname(__FILE__) . '/smtp.class.php';
-		}
-
 		if (is_null($rPath)) {
 			$rPath = ini_get('sendmail_from');
 		}
 
+		$smtp      = self::$smtp;
 		$server    = self::$smtp_server;
 		$port      = 25;
 		$username  = null;
@@ -455,14 +460,7 @@ abstract class Mailer
 			$port = $m[2];
 		}
 
-		if (!(self::$smtp instanceof Mailer_SMTP)) {
-			$smtp = new Mailer_SMTP();
-			$smtp->options($opts);
-			self::$smtp = $smtp;
-		}
-		else {
-			$smtp = self::$smtp;
-		}
+		$smtp->options($opts);
 
 		if (!$smtp->isConnected() && !$smtp->connect($host, $port, $username, $passwd)) {
 			$smtp->quit();
