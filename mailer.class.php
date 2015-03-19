@@ -20,7 +20,6 @@ define('PHP_USE_SENDMAIL', (ini_get('sendmail_path') != '') ? true : false);
  * Classe d’envois d’emails
  *
  * @todo
- * - Envoi avec SMTP (en cours)
  * - parsing des emails sauvegardés
  * - propagation charset dans les objets entêtes (pour encodage de param)
  * - Ajout de Email::loadFromString() et Email::saveAsString() ?
@@ -559,7 +558,7 @@ class Email
 	protected $_htmlPart = null;
 
 	/**
-	 * Multi-Partie globale de l’email
+	 * Fichiers joints à l’email
 	 *
 	 * @var array
 	 */

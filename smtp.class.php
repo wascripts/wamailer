@@ -6,16 +6,16 @@
  * @copyright 2002-2015 Aurélien Maille
  * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
  *
- * @see RFC 2821 - Simple Mail Transfer Protocol
- * @see RFC 2554 - SMTP Service Extension for Authentication
+ * @see RFC 5321 - Simple Mail Transfer Protocol
+ * @see RFC 4954 - SMTP Service Extension for Authentication
  * @see RFC 3207 - Secure SMTP over Transport Layer Security
+ * @see RFC 2920 - SMTP Service Extension for Command Pipelining
  *
  * Les sources qui m'ont bien aidées :
  *
  * @link http://abcdrfc.free.fr/ (français)
  * @link http://www.faqs.org/rfcs/ (anglais)
  * @link http://www.commentcamarche.net/internet/smtp.php3
- * @link http://www.interpc.fr/mapage/billaud/telmail.htm
  */
 
 // Compatibilité PHP < 5.3
