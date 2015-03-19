@@ -9,13 +9,12 @@
 
 require dirname(__FILE__) . '/mime.class.php';
 
-if (!($hostname = @php_uname('n'))) {
-    $hostname = (isset($_SERVER['SERVER_NAME'])) ? $_SERVER['SERVER_NAME'] : 'localhost';
+// Compatibilité PHP < 5.3
+if (!function_exists('gethostname')) {
+	function gethostname() { return @php_uname('n'); }
 }
 
-define('MAILER_HOSTNAME',  $hostname);
 define('PHP_USE_SENDMAIL', (ini_get('sendmail_path') != '') ? true : false);
-unset($hostname);
 
 /**
  * Classe d’envois d’emails
@@ -577,6 +576,14 @@ class Email
 	protected $message_txt = '';
 
 	/**
+	 * Nom de l'hôte.
+	 * Utilisé dans l’identifiant du message et dans ceux des fichiers joints.
+	 *
+	 * @var string
+	 */
+	protected $hostname = '';
+
+	/**
 	 * Constructeur de classe
 	 */
 	public function __construct($charset = null)
@@ -595,8 +602,15 @@ class Email
 			'MIME-Version' => ''
 		));
 
-		if (!is_null($charset)) {
+		if ($charset) {
 			$this->charset = $charset;
+		}
+
+		if (!$this->hostname) {
+			if (!($this->hostname = gethostname())) {
+				$this->hostname = (!empty($_SERVER['SERVER_NAME']))
+					? $_SERVER['SERVER_NAME'] : 'localhost';
+			}
 		}
 	}
 
@@ -1011,7 +1025,7 @@ class Email
 	{
 		$this->headers->set('Date', date(DATE_RFC2822));
 		$this->headers->set('MIME-Version', '1.0');
-		$this->headers->set('Message-ID', sprintf('<%s@%s>', md5(microtime().rand()), MAILER_HOSTNAME));
+		$this->headers->set('Message-ID', sprintf('<%s@%s>', md5(microtime().rand()), $this->hostname));
 
 		$this->headers_txt = $this->headers->__toString();
 		if (!empty($this->message_txt)) {
@@ -1041,7 +1055,7 @@ class Email
 						continue;
 					}
 
-					$cid = md5(microtime()) . '@' . MAILER_HOSTNAME;
+					$cid = sprintf('%s@%s', md5(microtime().rand()), $this->hostname);
 					$this->_htmlPart->body = preg_replace($regexp,
 						'<\\1\\2cid:' . $cid . '\\2\\3>', $this->_htmlPart->body
 					);

@@ -18,6 +18,11 @@
  * @link http://www.interpc.fr/mapage/billaud/telmail.htm
  */
 
+// Compatibilité PHP < 5.3
+if (!function_exists('gethostname')) {
+	function gethostname() { return @php_uname('n'); }
+}
+
 class Mailer_SMTP
 {
 	/**
@@ -174,11 +179,26 @@ class Mailer_SMTP
 	 */
 	private $pipeline = array();
 
+	/**
+	 * Nom de l'hôte.
+	 * Utilisé dans les commandes EHLO ou HELO.
+	 *
+	 * @var string
+	 */
+	protected $hostname = '';
+
 	public function __construct()
 	{
 		if (empty($this->host)) {
 			$this->host = ini_get('SMTP');
 			$this->port = ini_get('smtp_port');
+		}
+
+		if (!$this->hostname) {
+			if (!($this->hostname = gethostname())) {
+				$this->hostname = (!empty($_SERVER['SERVER_NAME']))
+					? $_SERVER['SERVER_NAME'] : 'localhost';
+			}
 		}
 	}
 
@@ -215,11 +235,6 @@ class Mailer_SMTP
 			if (empty($$varname)) {
 				$$varname = $this->{$varname};
 			}
-		}
-
-		if (!($hostname = @php_uname('n'))) {
-			$hostname = isset($_SERVER['SERVER_NAME']) ?
-				$_SERVER['SERVER_NAME'] : 'localhost';
 		}
 
 		$this->_responseCode = null;
@@ -270,7 +285,7 @@ class Mailer_SMTP
 			return false;
 		}
 
-		$this->hello($hostname);
+		$this->hello($this->hostname);
 
 		//
 		// Le cas échéant, on utilise le protocole sécurisé TLS
@@ -296,7 +311,7 @@ class Mailer_SMTP
 				throw new Exception("Mailer_SMTP::connect(): Cannot enable TLS encryption");
 			}
 
-			$this->hello($hostname);
+			$this->hello($this->hostname);
 		}
 
 		if (!empty($username) && !empty($passwd)) {
