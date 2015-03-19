@@ -210,9 +210,12 @@ class Mailer_SMTP
 	public function options($opts)
 	{
 		if (is_array($opts)) {
-			// Alternative pour l'activation du débogage
-			if (!empty($opts['debug'])) {
-				$this->debug = $opts['debug'];
+			// Configuration alternative
+			foreach (array('debug','timeout') as $name) {
+				if (!empty($opts[$name])) {
+					$this->{$name} = $opts[$name];
+					unset($opts[$name]);
+				}
 			}
 
 			$this->opts = array_merge($this->opts, $opts);
