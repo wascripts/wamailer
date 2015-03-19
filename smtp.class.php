@@ -344,14 +344,23 @@ class Mailer_SMTP
 
 		$this->_lastCommand = (strpos($data, ':')) ? strtok($data, ':') : strtok($data, ' ');
 		$data .= "\r\n";
+		$total = strlen($data);
 		$this->log($data);
 
-		if (!fwrite($this->socket, $data)) {
-			$md = stream_get_meta_data($this->socket);
+		while ($data) {
+			$bw = fwrite($this->socket, $data);
 
-			if ($md['timed_out']) {
-				throw new Exception("Mailer_SMTP::put(): Connection timed out!");
+			if (!$bw) {
+				$md = stream_get_meta_data($this->socket);
+
+				if ($md['timed_out']) {
+					throw new Exception("Mailer_SMTP::put(): Connection timed out!");
+				}
+
+				break;
 			}
+
+			$data = substr($data, $bw);
 		}
 	}
 
