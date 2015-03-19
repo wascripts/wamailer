@@ -82,18 +82,26 @@ abstract class Mailer
 	 *     'passwd'   => 'mypassword',
 	 *     'starttls' => true
 	 * ]
-	 * L'option starttls est inutile et sera ignorée si la connexion est
+	 * L'option 'starttls' est inutile et sera ignorée si la connexion est
 	 * sécurisée dès son initialisation par l'emploi de l'un des préfixes
 	 * ssl/tls supportés par PHP (voir http://php.net/stream-get-transports)
 	 *
-	 * Une autre option utilisable est 'debug' et peut être soit un booléen,
-	 * ou bien toute valeur utilisable avec call_user_func(). Exemple :
+	 * L'option 'debug' peut être soit un booléen (true = affichage sur la sortie
+	 * standard), ou bien toute valeur utilisable avec call_user_func(). Exemple :
 	 * [
 	 *     'server'   => 'tls://hostname:port',
 	 *     'username' => 'myusername',
 	 *     'passwd'   => 'mypassword',
 	 *     'debug'    => function ($str) { writelog($str); }
 	 * ]
+	 *
+	 * L'option 'keepalive' permet de réaliser plusieurs transactions
+	 * (= envois d'emails) durant la même connexion au serveur SMTP.
+	 * Indispensable si on envoie des emails en boucle.
+	 *
+	 * Les options non reconnues par la classe Mailer sont transmises telles
+	 * quelles à la classe Mailer_SMTP (voir Mailer_SMTP::$opts pour les options
+	 * reconnues par Mailer_SMTP).
 	 *
 	 * @var mixed
 	 */
