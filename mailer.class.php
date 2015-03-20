@@ -7,12 +7,7 @@
  * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
  */
 
-require dirname(__FILE__) . '/mime.class.php';
-
-// Compatibilité PHP < 5.3
-if (!function_exists('gethostname')) {
-	function gethostname() { return @php_uname('n'); }
-}
+require __DIR__ . '/mime.class.php';
 
 define('PHP_USE_SENDMAIL', (ini_get('sendmail_path') != '') ? true : false);
 
@@ -143,7 +138,7 @@ abstract class Mailer
 	public static function useSMTP($use, $server = null)
 	{
 		if (!class_exists('Mailer_SMTP')) {
-			require dirname(__FILE__) . '/smtp.class.php';
+			require __DIR__ . '/smtp.class.php';
 		}
 
 		self::$smtp = ($use) ? new Mailer_SMTP() : null;
@@ -231,7 +226,7 @@ abstract class Mailer
 		}
 		else if (self::$smtp_mode) {
 			if (!class_exists('Mailer_SMTP')) {
-				require dirname(__FILE__) . '/smtp.class.php';
+				require __DIR__ . '/smtp.class.php';
 			}
 
 			//

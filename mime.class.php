@@ -37,61 +37,6 @@ class Mime
 	);
 
 	/**
-	 * Encode le texte au format quoted-printable tel que défini dans la RFC 2045
-	 *
-	 * @see RFC 2045 (sec. 6.7)
-	 *
-	 * @param string $str
-	 *
-	 * @return string
-	 */
-	public static function quotedPrintableEncode($str)
-	{
-		$str = preg_replace('/\r\n?|\n/', "\r\n", $str);
-		$str = preg_replace(
-			'/([^\x09\x0A\x0D\x20-\x3C\x3E-\x7E]|[\x09\x20](?=\x0D\x0A|$))/',
-			create_function('$m', 'return sprintf(\'=%02X\', ord($m[1]));'),
-			$str
-		);
-
-		$maxlen = 76;
-		$lines  = explode("\r\n", $str);
-
-		foreach ($lines as &$line) {
-			if (($strlen = strlen($line)) == 0) {
-				continue;
-			}
-
-			$newline = '';
-			$pos = 0;
-
-			while ($pos < $strlen) {
-				$tmplen = $maxlen;
-				$i = min(($pos + $tmplen), $strlen);
-
-				// Si une coupure est nécessaire, on fait de la place pour
-				// le signe égal, "soft break"
-				if ($i < $strlen) {
-					$tmplen--;
-					$i--;
-				}
-
-				while ($line[$i-1] == '=' || $line[$i-2] == '=') {
-					$tmplen--;
-					$i--;
-				}
-
-				$newline .= substr($line, $pos, $tmplen) . "=\r\n";
-				$pos += $tmplen;
-			}
-
-			$line = rtrim($newline, "=\r\n");
-		}
-
-		return implode("\r\n", $lines);
-	}
-
-	/**
 	 * Encode la valeur d’un en-tête si elle contient des caractères non-ascii.
 	 * Autrement, des guillemets peuvent néanmoins être ajoutés aux extrémités
 	 * si des caractères interdits pour le token considéré sont présents.
@@ -197,7 +142,7 @@ class Mime
 				$tmp = substr($value, $pos, $tmplen);
 				if ($encoding == 'Q') {
 					$tmp = preg_replace_callback("/([$charlist])/",
-						create_function('$m', 'return sprintf(\'=%02X\', ord($m[1]));'),
+						function ($m) { return sprintf('=%02X', ord($m[1])); },
 						$tmp
 					);
 					$tmp = str_replace(' ', '_', $tmp);
@@ -404,7 +349,7 @@ class Mime_Part
 					 *
 					 * @see RFC 2045#6.7
 					 */
-					$body = Mime::quotedPrintableEncode($body);
+					$body = quoted_printable_encode($body);
 					break;
 				case 'base64':
 					/**

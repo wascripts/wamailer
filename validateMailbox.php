@@ -32,7 +32,7 @@
 function validateMailbox($emailList, &$return_errors = null)
 {
 	if (!class_exists('Mailer_SMTP')) {
-		require dirname(__FILE__) . '/smtp.class.php';
+		require __DIR__ . '/smtp.class.php';
 	}
 
 	if (!is_array($emailList)) {

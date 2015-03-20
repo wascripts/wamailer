@@ -18,11 +18,6 @@
  * @link http://www.commentcamarche.net/internet/smtp.php3
  */
 
-// Compatibilité PHP < 5.3
-if (!function_exists('gethostname')) {
-	function gethostname() { return @php_uname('n'); }
-}
-
 class Mailer_SMTP
 {
 	/**
@@ -218,7 +213,7 @@ class Mailer_SMTP
 				}
 			}
 
-			$this->opts = array_merge($this->opts, $opts);
+			$this->opts = array_replace_recursive($this->opts, $opts);
 		}
 	}
 
