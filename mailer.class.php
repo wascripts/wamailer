@@ -198,7 +198,7 @@ abstract class Mailer
 		$email = clone $email;
 
 		if (!$email->hasRecipients()) {
-			throw new Exception("Mailer::send(): No recipient address given");
+			throw new Exception("No recipient address given");
 		}
 
 		$email->headers->set('X-Mailer', sprintf(self::$signature, self::VERSION));
@@ -387,7 +387,7 @@ abstract class Mailer
 
 		if (!($sendmail = popen($sendmail_cmd, 'wb'))) {
 			throw new Exception(sprintf(
-				"Mailer::sendmail(): Could not execute mail delivery program '%s'",
+				"Could not execute mail delivery program '%s'",
 				substr($sendmail_cmd, 0, strpos($sendmail_cmd, ' '))
 			));
 		}
@@ -396,7 +396,7 @@ abstract class Mailer
 
 		if (($code = pclose($sendmail)) != 0) {
 			throw new Exception(sprintf(
-				"Mailer::sendmail(): The mail delivery program has returned the following error code (%d)",
+				"The mail delivery program has returned the following error code (%d)",
 				$code
 			));
 		}
@@ -447,7 +447,7 @@ abstract class Mailer
 		}
 
 		if ($host == '') {
-			throw new Exception("Mailer::smtpmail(): No valid SMTP server given");
+			throw new Exception("No valid SMTP server given");
 		}
 
 		if (preg_match('#^(.+):([0-9]+)$#', $host, $m)) {
@@ -460,7 +460,7 @@ abstract class Mailer
 		if (!$smtp->isConnected() && !$smtp->connect($host, $port, $username, $passwd)) {
 			$smtp->quit();
 			throw new Exception(sprintf(
-				"Mailer::smtpmail(): SMTP server response: '%s'",
+				"SMTP server response: '%s'",
 				$smtp->responseData
 			));
 		}
@@ -468,7 +468,7 @@ abstract class Mailer
 		if (!$smtp->from($rPath)) {
 			$smtp->quit();
 			throw new Exception(sprintf(
-				"Mailer::smtpmail(): SMTP server response: '%s'",
+				"SMTP server response: '%s'",
 				$smtp->responseData
 			));
 		}
@@ -477,7 +477,7 @@ abstract class Mailer
 			if (!$smtp->to($recipient)) {
 				$smtp->quit();
 				throw new Exception(sprintf(
-					"Mailer::smtpmail(): SMTP server response: '%s'",
+					"SMTP server response: '%s'",
 					$smtp->responseData
 				));
 			}
@@ -486,7 +486,7 @@ abstract class Mailer
 		if (!$smtp->send($email->__toString())) {
 			$smtp->quit();
 			throw new Exception(sprintf(
-				"Mailer::smtpmail(): SMTP server response: '%s'",
+				"SMTP server response: '%s'",
 				$smtp->responseData
 			));
 		}

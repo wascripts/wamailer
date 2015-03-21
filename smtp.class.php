@@ -270,7 +270,7 @@ class Mailer_SMTP
 		);
 
 		if (!$this->socket) {
-			throw new Exception("Mailer_SMTP::connect(): Failed to connect to SMTP server ($errno - $errstr)");
+			throw new Exception("Failed to connect to SMTP server ($errno - $errstr)");
 		}
 
 		stream_set_timeout($this->socket, $this->timeout);
@@ -293,7 +293,7 @@ class Mailer_SMTP
 		//
 		if ($startTLS) {
 			if (!$this->hasSupport('STARTTLS')) {
-				throw new Exception("Mailer_SMTP::connect(): SMTP server doesn't support STARTTLS command");
+				throw new Exception("SMTP server doesn't support STARTTLS command");
 			}
 
 			$this->put('STARTTLS');
@@ -308,7 +308,7 @@ class Mailer_SMTP
 
 			if (!stream_socket_enable_crypto($this->socket, true, $crypto_method)) {
 				fclose($this->socket);
-				throw new Exception("Mailer_SMTP::connect(): Cannot enable TLS encryption");
+				throw new Exception("Cannot enable TLS encryption");
 			}
 
 			$this->hello($this->hostname);
@@ -339,7 +339,7 @@ class Mailer_SMTP
 	public function put($data)
 	{
 		if (!$this->isConnected()) {
-			throw new Exception("Mailer_SMTP::put(): Connection was closed!");
+			throw new Exception("The connection was closed!");
 		}
 
 		$this->_lastCommand = (strpos($data, ':')) ? strtok($data, ':') : strtok($data, ' ');
@@ -354,7 +354,7 @@ class Mailer_SMTP
 				$md = stream_get_meta_data($this->socket);
 
 				if ($md['timed_out']) {
-					throw new Exception("Mailer_SMTP::put(): Connection timed out!");
+					throw new Exception("The connection timed out!");
 				}
 
 				break;
@@ -372,7 +372,7 @@ class Mailer_SMTP
 	public function checkResponse()
 	{
 		if (!$this->isConnected()) {
-			throw new Exception("Mailer_SMTP::checkResponse(): Connection was closed!");
+			throw new Exception("The connection was closed!");
 		}
 
 		$codes = array();
@@ -407,7 +407,7 @@ class Mailer_SMTP
 					$md = stream_get_meta_data($this->socket);
 
 					if ($md['timed_out']) {
-						throw new Exception("Mailer_SMTP::checkResponse(): Connection timed out!");
+						throw new Exception("The connection timed out!");
 					}
 
 					break;
@@ -519,7 +519,7 @@ class Mailer_SMTP
 	public function authenticate($username, $passwd)
 	{
 		if (!($available_methods = $this->hasSupport('AUTH'))) {
-			throw new Exception("Mailer_SMTP::authenticate(): SMTP server doesn't support authentication");
+			throw new Exception("SMTP server doesn't support authentication");
 		}
 
 		$available_methods = explode(' ', $available_methods);
@@ -579,7 +579,7 @@ class Mailer_SMTP
 			return true;
 		}
 
-		throw new Exception("Mailer_SMTP::authenticate(): Cannot select an authentication mechanism");
+		throw new Exception("Cannot select an authentication mechanism");
 	}
 
 	/**
