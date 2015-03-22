@@ -91,8 +91,11 @@ abstract class Mailer
 	 *     'debug'    => function ($str) { writelog($str); }
 	 * ]
 	 *
-	 * L'option 'timeout' permet de configurer le délai d'expiration lors des
-	 * tentatives de connexion ou de lecture/écriture.
+	 * L'option 'timeout' permet de configurer le délai d’attente lors d’une
+	 * tentative de connexion à un serveur.
+	 *
+	 * L'option 'iotimeout' permet de définir le délai d’attente moyen d’une
+	 * réponse du serveur après l’envoi d’une commande à celui-ci.
 	 *
 	 * L'option 'keepalive' permet de réaliser plusieurs transactions
 	 * (= envois d'emails) durant la même connexion au serveur SMTP.

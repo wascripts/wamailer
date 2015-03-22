@@ -67,6 +67,22 @@ class SmtpClient
 	public  $timeout    = 30;
 
 	/**
+	 * Délai d’attent lors d’envoi/réception de données.
+	 * La RFC 5321 recommande un certain délai (variable selon la commande)
+	 * dans le traitement des commandes lors d’une transaction SMTP.
+	 *
+	 * La plupart des commandes sont suivies d'un délai max. t = iotimeout.
+	 * Pour la commande DATA, on a t = ceil(iotimeout / 2).
+	 * Pour la commande de fin d'envoi du message (.), t = iotimeout * 2.
+	 * Lors des envois de données, t = ceil(iotimeout / 2).
+	 *
+	 * @see RFC 5321#4.5.3.2
+	 *
+	 * @var integer
+	 */
+	public  $iotimeout  = 300;
+
+	/**
 	 * Débogage.
 	 * true pour afficher sur la sortie standard ou bien toute valeur utilisable
 	 * avec call_user_func()
@@ -214,7 +230,7 @@ class SmtpClient
 	{
 		if (is_array($opts)) {
 			// Configuration alternative
-			foreach (array('debug','timeout') as $name) {
+			foreach (array('debug','timeout','iotimeout') as $name) {
 				if (!empty($opts[$name])) {
 					$this->{$name} = $opts[$name];
 					unset($opts[$name]);
@@ -277,7 +293,7 @@ class SmtpClient
 			throw new Exception("Failed to connect to SMTP server ($errno - $errstr)");
 		}
 
-		stream_set_timeout($this->socket, $this->timeout);
+		stream_set_timeout($this->socket, $this->iotimeout);
 
 		//
 		// Code success : 220
@@ -351,6 +367,8 @@ class SmtpClient
 		$total = strlen($data);
 		$this->log($data);
 
+		stream_set_timeout($this->socket, ceil($this->iotimeout / 2));
+
 		while ($data) {
 			$bw = fwrite($this->socket, $data);
 
@@ -403,6 +421,17 @@ class SmtpClient
 
 		for ($i = 0; $i < count($pipeline); $i++) {
 			$this->_responseData = '';
+
+			// voir commentaire de la propriété self::$iotimeout
+			$timeout = $this->iotimeout;
+			if ($this->_lastCommand == 'DATA') {
+				$timeout /= 2;
+			}
+			else if ($this->_lastCommand == '.') {
+				$timeout *= 2;
+			}
+
+			stream_set_timeout($this->socket, ceil($timeout));
 
 			do {
 				$data = fgets($this->socket);
