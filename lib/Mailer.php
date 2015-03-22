@@ -33,7 +33,8 @@ abstract class Mailer
 
 	/**
 	 * Valeur du champ X-Mailer.
-	 * %s est remplacé par Mailer::VERSION
+	 * %s est remplacé par Mailer::VERSION.
+	 * Si la valeur équivaut à false, l’en-tête X-Mailer n’est pas ajouté.
 	 *
 	 * @var string
 	 */
@@ -197,7 +198,10 @@ abstract class Mailer
 			throw new Exception("No recipient address given");
 		}
 
-		$email->headers->set('X-Mailer', sprintf(self::$signature, self::VERSION));
+		$header_sig = null;
+		if (!empty(self::$signature)) {
+			$header_sig = $email->headers->set('X-Mailer', sprintf(self::$signature, self::VERSION));
+		}
 
 		if (!$email->headers->get('To') && !$email->headers->get('Cc')) {
 			// Tous les destinataires sont en copie cachée. On ajoute quand
@@ -217,11 +221,18 @@ abstract class Mailer
 		}
 
 		if (self::$sendmail_mode) {
-			$email->headers->get('X-Mailer')->append(' (Sendmail mode)');
+			if ($header_sig) {
+				$header_sig->append(' (Sendmail mode)');
+			}
+
 			return self::sendmail($email, null, $rPath);
 		}
 
 		if (self::$smtp_mode) {
+			if ($header_sig) {
+				$header_sig->append(' (SMTP mode)');
+			}
+
 			//
 			// Nous devons passer directement les adresses email des destinataires
 			// au serveur SMTP.
@@ -239,7 +250,6 @@ abstract class Mailer
 				}
 			}
 
-			$email->headers->get('X-Mailer')->append(' (SMTP mode)');
 			//
 			// L’entête Bcc ne doit pas apparaitre dans l’email envoyé.
 			// On le supprime donc.
