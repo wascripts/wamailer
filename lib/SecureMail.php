@@ -16,6 +16,10 @@
  * @link http://www.kfwebs.net/articles/article/15/PHP-Sendmail-classes
  */
 
+namespace Wamailer;
+
+use Exception;
+
 class SecureMail extends Email
 {
 	const A_ENCRYPTION = 1;// chiffrement asymétrique
@@ -236,12 +240,12 @@ class SecureMail extends Email
 
 			$encrypted_msg = implode("\r\n", $output);
 
-			$gpg_sub1 = new Mime_Part();
+			$gpg_sub1 = new Mime\Part();
 			$gpg_sub1->headers->set('Content-Type', 'application/pgp-encrypted');
 			$gpg_sub1->headers->set('Content-Description', 'PGP/MIME version identification');
 			$gpg_sub1->body = 'Version: 1';
 
-			$gpg_sub2 = new Mime_Part();
+			$gpg_sub2 = new Mime\Part();
 			$gpg_sub2->headers->set('Content-Type', 'application/octet-stream');
 			$gpg_sub2->headers->get('Content-Type')->param('name', 'encrypted.asc');
 			$gpg_sub2->headers->set('Content-Description', 'OpenPGP encrypted message');
@@ -253,7 +257,7 @@ class SecureMail extends Email
 			//
 			// Bloc MIME global
 			//
-			$gpg = new Mime_Part();
+			$gpg = new Mime\Part();
 			$gpg->headers->set('Content-Type', 'multipart/encrypted');
 			$gpg->headers->get('Content-Type')->param('protocol', 'application/pgp-encrypted');
 			$gpg->body = 'This is an OpenPGP/MIME encrypted message (RFC 2440 and 3156)';
@@ -291,7 +295,7 @@ class SecureMail extends Email
 
 			$signature = implode("\r\n", $output);
 
-			$gpg_sub = new Mime_Part();
+			$gpg_sub = new Mime\Part();
 			$gpg_sub->headers->set('Content-Type', 'application/pgp-signature');
 			$gpg_sub->headers->get('Content-Type')->param('name', 'signature.asc');
 			$gpg_sub->headers->set('Content-Description', 'OpenPGP digital signature');
@@ -303,7 +307,7 @@ class SecureMail extends Email
 			//
 			// Bloc MIME global
 			//
-			$gpg = new Mime_Part();
+			$gpg = new Mime\Part();
 			$gpg->headers->set('Content-Type', 'multipart/signed');
 			$gpg->headers->get('Content-Type')->param('micalg', "pgp-$this->digest_algo");
 			$gpg->headers->get('Content-Type')->param('protocol', 'application/pgp-signature');

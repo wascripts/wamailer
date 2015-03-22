@@ -35,16 +35,19 @@ Utilisation
 
 Incluez simplement la classe dans vos scripts. Exemple d’utilisation :
 
-    require 'wamailer/mailer.class.php';
+    // Inclusion de l'autoloader de Wamailer.
+    // Inutile dans le cas où wamailer est géré par un gestionnaire de
+    // dépendances tel que composer.
+    require 'wamailer.php';
 
-    $email = new Email();
+    $email = new \Wamailer\Email();
     $email->setFrom('me@domain.tld', 'MyName');
     $email->addRecipient('other@domain.tld');
     $email->setSubject('This is the subject');
     $email->setTextBody('This is the body of mail');
 
     try {
-        Mailer::send($email);
+        \Wamailer\Mailer::send($email);
     }
     catch (Exception $e) {
         ...

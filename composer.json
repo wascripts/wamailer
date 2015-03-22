@@ -16,7 +16,8 @@
 		"php": ">=5.3.0"
 	},
 	"autoload": {
-		"classmap": [""],
-		"files": ["validateMailbox.php"]
+		"psr-4": {
+			"Wamailer\\": "lib/"
+		}
 	}
 }

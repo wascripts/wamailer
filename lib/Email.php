@@ -7,512 +7,9 @@
  * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
  */
 
-require __DIR__ . '/mime.class.php';
+namespace Wamailer;
 
-define('PHP_USE_SENDMAIL', (ini_get('sendmail_path') != '') ? true : false);
-
-/**
- * Classe d’envois d’emails
- *
- * @todo
- * - parsing des emails sauvegardés
- * - propagation charset dans les objets entêtes (pour encodage de param)
- * - Ajout de Email::loadFromString() et Email::saveAsString() ?
- *
- * Les sources qui m’ont bien aidées :
- *
- * @link https://github.com/php/php-src/blob/master/ext/standard/mail.c
- * @link https://github.com/php/php-src/blob/master/win32/sendmail.c
- */
-abstract class Mailer
-{
-	/**
-	 * Version courante de Wamailer
-	 */
-	const VERSION = '3.1';
-
-	/**
-	 * Valeur du champ X-Mailer.
-	 * %s est remplacé par Mailer::VERSION
-	 *
-	 * @var string
-	 */
-	public static $signature = 'Wamailer/%s';
-
-	/********************** RÉGLAGES SENDMAIL **********************/
-
-	/**
-	 * Activation du mode sendmail
-	 *
-	 * @var boolean
-	 */
-	private static $sendmail_mode = false;
-
-	/**
-	 * Commande de lancement de sendmail
-	 * L’option '-t' indique au programme de récupérer les adresses des destinataires dans les
-	 * en-têtes 'To', 'Cc' et 'Bcc' de l’email.
-	 * L’option '-i' permet d’éviter que le programme n’interprète une ligne contenant uniquement
-	 * un caractère point comme la fin du message.
-	 *
-	 * @var string
-	 */
-	public static $sendmail_cmd = '/usr/sbin/sendmail -t -i';
-
-	/********************** RÉGLAGES SMTP **************************/
-
-	/**
-	 * Activation du mode SMTP
-	 *
-	 * @var boolean
-	 */
-	private static $smtp_mode = false;
-
-	/**
-	 * Serveur SMTP à contacter
-	 * Format simple : 'hostname', 'hostname:port' ou 'ssl://hostname:port'
-	 * Format avancé : [
-	 *     'server'   => 'hostname:port',
-	 *     'username' => 'myusername',
-	 *     'passwd'   => 'mypassword',
-	 *     'starttls' => true
-	 * ]
-	 * L'option 'starttls' est inutile et sera ignorée si la connexion est
-	 * sécurisée dès son initialisation par l'emploi de l'un des préfixes
-	 * ssl/tls supportés par PHP (voir http://php.net/stream-get-transports)
-	 *
-	 * L'option 'debug' peut être soit un booléen (true = affichage sur la sortie
-	 * standard), ou bien toute valeur utilisable avec call_user_func(). Exemple :
-	 * [
-	 *     'server'   => 'tls://hostname:port',
-	 *     'username' => 'myusername',
-	 *     'passwd'   => 'mypassword',
-	 *     'debug'    => function ($str) { writelog($str); }
-	 * ]
-	 *
-	 * L'option 'timeout' permet de configurer le délai d'expiration lors des
-	 * tentatives de connexion ou de lecture/écriture.
-	 *
-	 * L'option 'keepalive' permet de réaliser plusieurs transactions
-	 * (= envois d'emails) durant la même connexion au serveur SMTP.
-	 * Indispensable si on envoie des emails en boucle.
-	 *
-	 * Les options non reconnues par la classe Mailer sont transmises telles
-	 * quelles à la classe Mailer_SMTP (voir Mailer_SMTP::$opts pour les options
-	 * reconnues par Mailer_SMTP).
-	 *
-	 * @var mixed
-	 */
-	public static $smtp_server = 'localhost';
-
-	/**
-	 * Utilisé en interne pour stocker l'instance de Mailer_SMTP
-	 *
-	 * @var Mailer_SMTP
-	 */
-	private static $smtp;
-
-	/**
-	 * Active ou désactive l’utilisation directe de sendmail pour l’envoi des emails
-	 *
-	 * @param boolean $use Active/désactive le mode sendmail
-	 * @param string  $cmd Commande système à utiliser
-	 */
-	public static function useSendmail($use, $cmd = null)
-	{
-		self::$sendmail_mode = $use;
-
-		if (is_string($cmd)) {
-			self::$sendmail_cmd = $cmd;
-		}
-	}
-
-	/**
-	 * Active ou désactive l’utilisation directe d’un serveur SMTP pour l’envoi des emails
-	 *
-	 * @param boolean $use    Active/désactive le mode SMTP
-	 * @param mixed   $server Informations de connexion au serveur (voir la propriété $smtp_server)
-	 *
-	 * @return Mailer_SMTP
-	 */
-	public static function useSMTP($use, $server = null)
-	{
-		if (!class_exists('Mailer_SMTP')) {
-			require __DIR__ . '/smtp.class.php';
-		}
-
-		self::$smtp = ($use) ? new Mailer_SMTP() : null;
-		self::$smtp_mode = $use;
-
-		if (!is_null($server)) {
-			self::$smtp_server = $server;
-		}
-
-		return self::$smtp;
-	}
-
-	/**
-	 * Vérifie la validité syntaxique d'un email
-	 *
-	 * @param string $email
-	 *
-	 * @return boolean
-	 */
-	public static function checkMailSyntax($email)
-	{
-		return (bool) preg_match('/^(?:(?(?<!^)\.)[-!#$%&\'*+\/0-9=?a-z^_`{|}~]+)+@'
-			. '(?:(?(?<!@)\.)[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?)+$/i', $email);
-	}
-
-	/**
-	 * Nettoie la liste des adresses destinataires pour supprimer toute
-	 * personnalisation ('My name' <my@address.tld>)
-	 *
-	 * @param string $addressList
-	 *
-	 * @return array
-	 */
-	public static function clearAddressList($addressList)
-	{
-		preg_match_all(
-			'/(?<=^|[\s,<])[-!#$%&\'*+\/0-9=?a-z^_`{|}~.]+@[-a-z0-9.]+(?=[\s,>]|$)/Si',
-			$addressList,
-			$matches
-		);
-
-		return $matches[0];
-	}
-
-	/**
-	 * Envoi d’un email
-	 *
-	 * @param Email $email
-	 *
-	 * @throws Exception
-	 *
-	 * @return boolean
-	 */
-	public static function send(Email $email)
-	{
-		// On veut travailler sur une copie et non pas altérer l'instance d'origine
-		$email = clone $email;
-
-		if (!$email->hasRecipients()) {
-			throw new Exception("No recipient address given");
-		}
-
-		$email->headers->set('X-Mailer', sprintf(self::$signature, self::VERSION));
-
-		if (!$email->headers->get('To') && !$email->headers->get('Cc')) {
-			// Tous les destinataires sont en copie cachée. On ajoute quand
-			// même un en-tête To pour le mentionner.
-			$email->headers->set('To', 'undisclosed-recipients:;');
-		}
-
-		$rPath = $email->headers->get('Return-Path');
-		if (!is_null($rPath)) {
-			$rPath = trim($rPath->value, '<>');
-			/**
-			 * L'en-tête Return-Path ne devrait être ajouté que par le dernier
-			 * serveur SMTP de la chaîne de transmission et non pas par le MUA
-			 * @see RFC2321#4.4
-			 */
-			$email->headers->remove('Return-Path');
-		}
-
-		if (self::$sendmail_mode) {
-			$email->headers->get('X-Mailer')->append(' (Sendmail mode)');
-			$result = self::sendmail($email, null, $rPath);
-		}
-		else if (self::$smtp_mode) {
-			if (!class_exists('Mailer_SMTP')) {
-				require __DIR__ . '/smtp.class.php';
-			}
-
-			//
-			// Nous devons passer directement les adresses email des destinataires
-			// au serveur SMTP.
-			// On récupère ces adresses des entêtes To, Cc et Bcc.
-			//
-			$recipients = array();
-			foreach (array('to', 'cc', 'bcc') as $name) {
-				$header = $email->headers->get($name);
-
-				if (!is_null($header)) {
-					$addressList = $header->value;
-					$recipients = array_merge($recipients,
-						self::clearAddressList($addressList)
-					);
-				}
-			}
-
-			$email->headers->get('X-Mailer')->append(' (SMTP mode)');
-			//
-			// L’entête Bcc ne doit pas apparaitre dans l’email envoyé.
-			// On le supprime donc.
-			//
-			$email->headers->remove('Bcc');
-
-			$result = self::smtpmail($email, $recipients, $rPath);
-		}
-		else {
-			$subject = $email->headers->get('Subject');
-			$recipients = $email->headers->get('To');
-
-			if (!is_null($subject)) {
-				$subject = $subject->value;
-				// La fonction mail() ajoute elle-même l'en-tête Subject
-				$email->headers->remove('Subject');
-			}
-
-			if (!is_null($recipients)) {
-				$recipients = $recipients->value;
-
-				if (PHP_USE_SENDMAIL) {
-					//
-					// Sendmail parse les en-têtes To, Cc et Bcc s’ils sont
-					// présents pour récupérer la liste des adresses destinataire.
-					// On passe déjà la liste des destinataires principaux (To)
-					// en argument de la fonction mail(), donc on supprime l’en-tête To
-					//
-					$email->headers->remove('To');
-				}
-				else {
-					//
-					// La fonction mail() ouvre un socket vers un serveur SMTP.
-					// On peut laisser l’en-tête To pour la personnalisation.
-					// Il faut par contre passer une liste d’adresses débarassée
-					// de cette personnalisation en argument de la fonction mail()
-					// sous peine d’obtenir une erreur.
-					//
-					$recipients = implode(', ', self::clearAddressList($recipients));
-				}
-			}
-
-			if (!PHP_USE_SENDMAIL) {
-				//
-				// La fonction mail() utilise prioritairement la valeur de l’option
-				// sendmail_from comme adresse à passer dans la commande MAIL FROM
-				// (adresse qui sera utilisée par le serveur SMTP pour forger l’entête
-				// Return-Path). On donne la valeur de $rPath à l’option sendmail_from
-				//
-				if (!is_null($rPath)) {
-					ini_set('sendmail_from', $rPath);
-				}
-
-				//
-				// La fonction mail() va parser elle-même les entêtes Cc et Bcc
-				// pour passer les adresses destinataires au serveur SMTP.
-				// Il est donc indispensable de nettoyer l’entête Cc de toute
-				// personnalisation sous peine d’obtenir une erreur.
-				//
-				$header_cc = $email->headers->get('Cc');
-				if (!is_null($header_cc)) {
-					$header_cc->value = implode(', ',
-						self::clearAddressList($header_cc->value)
-					);
-				}
-			}
-
-			list($headers, $message) = explode("\r\n\r\n", $email->__toString(), 2);
-
-			if (PHP_USE_SENDMAIL) {
-				$headers = str_replace("\r\n", PHP_EOL, $headers);
-				$message = str_replace("\r\n", PHP_EOL, $message);
-
-				/**
-				 * PHP ne laisse passer les longs entêtes Subject et To que
-				 * si les plis sont séparés par des séquences \r\n<LWS>,
-				 * cela même sur les systèmes UNIX-like.
-				 * Cela semble poser problème avec certains serveurs POP ou IMAP
-				 * qui interprètent les retours chariots comme des sauts de ligne
-				 * et les remplacent comme tels, faussant ainsi le marquage de fin
-				 * du bloc d’entêtes de l’email.
-				 * On remplace les séquences \r\n<LWS> par une simple espace
-				 *
-				 * @see SKIP_LONG_HEADER_SEP routine in
-				 *      http://cvs.php.net/php-src/ext/standard/mail.c
-				 * @see PHP Bug 24805 at http://bugs.php.net/bug.php?id=24805
-				 */
-				$subject = str_replace("\r\n\t", ' ', $subject);
-				$recipients = str_replace("\r\n\t", ' ', $recipients);
-			}
-
-			set_error_handler(array('Mailer', 'errorHandler'));
-
-			if (!ini_get('safe_mode') && !is_null($rPath)) {
-				$result = mail($recipients, $subject, $message, $headers, '-f' . $rPath);
-			}
-			else {
-				$result = mail($recipients, $subject, $message, $headers);
-			}
-
-			restore_error_handler();
-
-			if (!PHP_USE_SENDMAIL) {
-				ini_restore('sendmail_from');
-			}
-		}
-
-		return $result;
-	}
-
-	/**
-	 * Envoi via sendmail
-	 *
-	 * @param Email  $email      Email à envoyer
-	 * @param string $recipients Adresses supplémentaires de destinataires
-	 * @param string $rPath      Adresse d’envoi (définit le return-path)
-	 *
-	 * @throws Exception
-	 *
-	 * @return boolean
-	 */
-	public static function sendmail($email, $recipients = null, $rPath = null)
-	{
-		if (!empty(self::$sendmail_cmd)) {
-			$sendmail_cmd = self::$sendmail_cmd;
-		}
-		else {
-			$sendmail_cmd = ini_get('sendmail_path');
-		}
-
-		if (!is_null($rPath)) {
-			$sendmail_cmd .= ' -f' . escapeshellcmd($rPath);
-		}
-
-		if (is_array($recipients) && count($recipients) > 0) {
-			$sendmail_cmd .= ' -- ' . escapeshellcmd(implode(' ', $recipients));
-		}
-
-		if (!($sendmail = popen($sendmail_cmd, 'wb'))) {
-			throw new Exception(sprintf(
-				"Could not execute mail delivery program '%s'",
-				substr($sendmail_cmd, 0, strpos($sendmail_cmd, ' '))
-			));
-		}
-
-		fwrite($sendmail, str_replace("\r\n", PHP_EOL, $email->__toString()));
-
-		if (($code = pclose($sendmail)) != 0) {
-			throw new Exception(sprintf(
-				"The mail delivery program has returned the following error code (%d)",
-				$code
-			));
-		}
-
-		return true;
-	}
-
-	/**
-	 * Envoi via la classe smtp
-	 *
-	 * @param Email  $email      Email à envoyer
-	 * @param string $recipients Adresses des destinataires
-	 * @param string $rPath      Adresse d’envoi (définit le return-path)
-	 *
-	 * @throws Exception
-	 *
-	 * @return boolean
-	 */
-	public static function smtpmail($email, $recipients, $rPath = null)
-	{
-		if (is_null($rPath)) {
-			$rPath = ini_get('sendmail_from');
-		}
-
-		$smtp      = self::$smtp;
-		$server    = self::$smtp_server;
-		$port      = 25;
-		$username  = null;
-		$passwd    = null;
-		$keepalive = false;
-		$opts      = array();
-
-		if (is_array($server) && isset($server['server'])) {
-			foreach (array('username','passwd','keepalive') as $optname) {
-				if (isset($server[$optname])) {
-					$$optname = $server[$optname];
-					unset($server[$optname]);
-				}
-			}
-
-			$host = $server['server'];
-			// D'autres entrées du tableau server peuvent correspondre à des options
-			// à transmettre à la classe smtp
-			$opts = $server;
-		}
-		else {
-			$host = $server;
-		}
-
-		if ($host == '') {
-			throw new Exception("No valid SMTP server given");
-		}
-
-		if (preg_match('#^(.+):([0-9]+)$#', $host, $m)) {
-			$host = $m[1];
-			$port = $m[2];
-		}
-
-		$smtp->options($opts);
-
-		if (!$smtp->isConnected() && !$smtp->connect($host, $port, $username, $passwd)) {
-			$smtp->quit();
-			throw new Exception(sprintf(
-				"SMTP server response: '%s'",
-				$smtp->responseData
-			));
-		}
-
-		if (!$smtp->from($rPath)) {
-			$smtp->quit();
-			throw new Exception(sprintf(
-				"SMTP server response: '%s'",
-				$smtp->responseData
-			));
-		}
-
-		foreach ($recipients as $recipient) {
-			if (!$smtp->to($recipient)) {
-				$smtp->quit();
-				throw new Exception(sprintf(
-					"SMTP server response: '%s'",
-					$smtp->responseData
-				));
-			}
-		}
-
-		if (!$smtp->send($email->__toString())) {
-			$smtp->quit();
-			throw new Exception(sprintf(
-				"SMTP server response: '%s'",
-				$smtp->responseData
-			));
-		}
-
-		if (!$keepalive) {
-			$smtp->quit();
-		}
-
-		return true;
-	}
-
-	/**
-	 * Méthode de gestion des erreurs.
-	 * Activée lors de l'appel à la fonction mail() pour récupérer les
-	 * éventuelles erreurs et les retourner proprement sous forme d'exception.
-	 *
-	 * @param integer $errno
-	 * @param string  $error
-	 *
-	 * @throws Exception
-	 */
-	public static function errorHandler($errno, $error)
-	{
-		throw new Exception("mail() function has returned the following error: '$error'");
-	}
-}
+use Exception;
 
 class Email
 {
@@ -543,21 +40,21 @@ class Email
 	/**
 	 * Bloc d’en-têtes de l’email
 	 *
-	 * @var Mime_Headers
+	 * @var Mime\Headers
 	 */
 	protected $_headers = null;
 
 	/**
 	 * Partie texte brut de l’email
 	 *
-	 * @var Mime_Part
+	 * @var Mime\Part
 	 */
 	protected $_textPart = null;
 
 	/**
 	 * Partie HTML de l’email
 	 *
-	 * @var Mime_Part
+	 * @var Mime\Part
 	 */
 	protected $_htmlPart = null;
 
@@ -591,7 +88,7 @@ class Email
 	 */
 	public function __construct($charset = null)
 	{
-		$this->_headers = new Mime_Headers(array(
+		$this->_headers = new Mime\Headers(array(
 			'Return-Path' => '',
 			'Date' => '',
 			'From' => '',
@@ -662,8 +159,8 @@ class Email
 			// @todo
 			// Récupération charset "global"
 			// + structure, si compatible
-			// + attention, headers du premier mime_part se trouvent dans
-			// le Mime_Headers de l’objet Email
+			// + attention, headers du premier Mime\Part se trouvent dans
+			// l'objet Mime\Headers de l’objet Email
 
 			$contentType = $email->headers->get('Content-Type');
 			$boundary = $contentType->param('boundary');
@@ -722,7 +219,7 @@ class Email
 
 		if (!empty($name)) {
 			$email = sprintf('%s <%s>',
-				Mime::encodeHeader('From', $name, $this->charset, 'phrase'),
+				Mime\Header::encode('From', $name, $this->charset, 'phrase'),
 				$email
 			);
 		}
@@ -767,7 +264,7 @@ class Email
 
 		if (!empty($name)) {
 			$email = sprintf('%s <%s>',
-				Mime::encodeHeader($header, $name, $this->charset, 'phrase'),
+				Mime\Header::encode($header, $name, $this->charset, 'phrase'),
 				$email
 			);
 		}
@@ -822,7 +319,7 @@ class Email
 
 			if (!empty($name)) {
 				$email = sprintf('%s <%s>',
-					Mime::encodeHeader('Reply-To', $name, $this->charset, 'phrase'),
+					Mime\Header::encode('Reply-To', $name, $this->charset, 'phrase'),
 					$email
 				);
 			}
@@ -878,7 +375,7 @@ class Email
 	public function organization($str)
 	{
 		$this->headers->set('Organization',
-			Mime::encodeHeader('Organization', $str, $this->charset)
+			Mime\Header::encode('Organization', $str, $this->charset)
 		);
 	}
 
@@ -888,7 +385,7 @@ class Email
 	public function setSubject($subject)
 	{
 		$this->headers->set('Subject',
-			Mime::encodeHeader('Subject', $subject, $this->charset)
+			Mime\Header::encode('Subject', $subject, $this->charset)
 		);
 	}
 
@@ -896,7 +393,7 @@ class Email
 	 * @param string $message Le message de l’email en texte brut
 	 * @param string $charset Jeu de caractères de la chaîne contenue dans $message
 	 *
-	 * @return Mime_Part
+	 * @return Mime\Part
 	 */
 	public function setTextBody($message, $charset = null)
 	{
@@ -904,7 +401,7 @@ class Email
 			$charset = $this->charset;
 		}
 
-		$this->_textPart = new Mime_Part($message);
+		$this->_textPart = new Mime\Part($message);
 		$this->_textPart->headers->set('Content-Type', 'text/plain');
 		$this->_textPart->headers->set('Content-Transfer-Encoding', '8bit');
 		$this->_textPart->headers->get('Content-Type')->param('charset', $charset);
@@ -926,7 +423,7 @@ class Email
 	 * @param string $message Le message de l’email au format HTML
 	 * @param string $charset Jeu de caractères de la chaîne contenue dans $message
 	 *
-	 * @return Mime_Part
+	 * @return Mime\Part
 	 */
 	public function setHTMLBody($message, $charset = null)
 	{
@@ -934,7 +431,7 @@ class Email
 			$charset = $this->charset;
 		}
 
-		$this->_htmlPart = new Mime_Part($message);
+		$this->_htmlPart = new Mime\Part($message);
 		$this->_htmlPart->headers->set('Content-Type', 'text/html');
 		$this->_htmlPart->headers->set('Content-Transfer-Encoding', '8bit');
 		$this->_htmlPart->headers->get('Content-Type')->param('charset', $charset);
@@ -960,7 +457,7 @@ class Email
 	 * @param string $type        Type MIME du fichier
 	 * @param string $disposition Disposition
 	 *
-	 * @return Mime_Part
+	 * @return Mime\Part
 	 */
 	public function attach($filename, $name = '', $type = '', $disposition = '')
 	{
@@ -987,7 +484,7 @@ class Email
 	 * @param string $type        Type MIME des données
 	 * @param string $disposition Disposition
 	 *
-	 * @return Mime_Part
+	 * @return Mime\Part
 	 */
 	public function attachFromString($data, $name, $type = 'application/octet-stream', $disposition = '')
 	{
@@ -996,7 +493,7 @@ class Email
 		}
 		$name = basename($name);
 
-		$attach = new Mime_Part($data);
+		$attach = new Mime\Part($data);
 		$attach->headers->set('Content-Type', $type);
 		$attach->headers->get('Content-Type')->param('name', $name);
 		$attach->headers->set('Content-Disposition', $disposition);
@@ -1042,7 +539,7 @@ class Email
 			$rootPart = $this->_htmlPart;
 
 			if (!is_null($this->_textPart)) {
-				$rootPart = new Mime_Part();
+				$rootPart = new Mime\Part();
 				$rootPart->addSubPart($this->_textPart);
 				$rootPart->addSubPart($this->_htmlPart);
 				$rootPart->headers->set('Content-Type', 'multipart/alternative');
@@ -1070,7 +567,7 @@ class Email
 			}
 
 			if (count($embedParts) > 0) {
-				$embedPart = new Mime_Part();
+				$embedPart = new Mime\Part();
 				$embedPart->addSubPart($rootPart);
 				$embedPart->addSubPart($embedParts);
 				$embedPart->headers->set('Content-Type', 'multipart/related');
@@ -1089,7 +586,7 @@ class Email
 
 		if (count($attachParts) > 0) {
 			if (!is_null($rootPart)) {
-				$mixedPart = new Mime_Part();
+				$mixedPart = new Mime\Part();
 				$mixedPart->headers->set('Content-Type', 'multipart/mixed');
 				$mixedPart->addSubPart($rootPart);
 				$mixedPart->addSubPart($attachParts);
@@ -1098,7 +595,7 @@ class Email
 				$mixedPart = $attachParts[0];
 			}
 			else {
-				$mixedPart = new Mime_Part();
+				$mixedPart = new Mime\Part();
 				$mixedPart->headers->set('Content-Type', 'multipart/mixed');
 				$mixedPart->addSubPart($attachParts);
 			}

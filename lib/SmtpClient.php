@@ -18,7 +18,11 @@
  * @link http://www.commentcamarche.net/internet/smtp.php3
  */
 
-class Mailer_SMTP
+namespace Wamailer;
+
+use Exception;
+
+class SmtpClient
 {
 	/**
 	 * Socket de connexion au serveur SMTP
@@ -73,7 +77,7 @@ class Mailer_SMTP
 
 	/**
 	 * Options diverses.
-	 * Voir méthode Mailer_SMTP::options()
+	 * Voir méthode SmtpClient::options()
 	 *
 	 * @var array
 	 */
