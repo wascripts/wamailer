@@ -365,7 +365,7 @@ class SmtpClient
 		$this->_lastCommand = (strpos($data, ':')) ? strtok($data, ':') : strtok($data, ' ');
 		$data .= "\r\n";
 		$total = strlen($data);
-		$this->log($data);
+		$this->log(sprintf('C: %s', $data));
 
 		stream_set_timeout($this->socket, ceil($this->iotimeout / 2));
 
@@ -446,7 +446,7 @@ class SmtpClient
 					break;
 				}
 
-				$this->log($data);
+				$this->log(sprintf('S: %s', $data));
 				$this->_responseCode  = substr($data, 0, 3);
 				$this->_responseData .= $data;
 			}
