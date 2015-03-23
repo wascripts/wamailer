@@ -296,8 +296,8 @@ class SmtpClient
 		stream_set_timeout($this->socket, $this->iotimeout);
 
 		//
-		// Code success : 220
-		// Code failure : 421
+		// S: 220
+		// E: 554
 		//
 		if (!$this->checkResponse(220)) {
 			return false;
@@ -308,8 +308,8 @@ class SmtpClient
 		//
 		// Le cas échéant, on utilise le protocole sécurisé TLS
 		//
-		// Code success : 220
-		// Code error   : 421
+		// S: 220
+		// E: 454, 501
 		//
 		if ($startTLS) {
 			if (!$this->hasSupport('STARTTLS')) {
@@ -472,8 +472,8 @@ class SmtpClient
 		//
 		// Comme on est poli, on dit bonjour
 		//
-		// Code success : 250
-		// Code error   : 500, 501, 504, 421
+		// S: 250
+		// E: 502, 504, 550
 		//
 		$this->put(sprintf('EHLO %s', $hostname));
 		if (!$this->checkResponse(250)) {
@@ -631,9 +631,8 @@ class SmtpClient
 		}
 
 		//
-		// Code success : 250
-		// Code failure : 552, 451, 452
-		// Code error   : 500, 501, 421
+		// S: 250
+		// E: 552, 451, 452, 550, 553, 503, 455, 555
 		//
 		$params = (!empty($params)) ? ' ' . $params : '';
 		$this->put(sprintf('MAIL FROM:<%s>%s', $email, $params));
@@ -659,9 +658,8 @@ class SmtpClient
 		}
 
 		//
-		// Code success : 250, 251
-		// Code failure : 550, 551, 552, 553, 450, 451, 452
-		// Code error   : 500, 501, 503, 421
+		// S: 250, 251
+		// E: 550, 551, 552, 553, 450, 451, 452, 503, 455, 555
 		//
 		$params = (!empty($params)) ? ' ' . $params : '';
 		$this->put(sprintf('RCPT TO:<%s>%s', $email, $params));
@@ -689,7 +687,8 @@ class SmtpClient
 		//
 		// On indique au serveur que l’on va lui livrer les données
 		//
-		// Code intermédiaire : 354
+		// I: 354
+		// E: 503, 554
 		//
 		$this->put('DATA');
 		if (!$this->checkResponse(354)) {
@@ -702,9 +701,8 @@ class SmtpClient
 		//
 		// On indique la fin des données au serveur
 		//
-		// Code success : 250
-		// Code failure : 552, 554, 451, 452
-		// Code error   : 500, 501, 503, 421
+		// S: 250
+		// E: 450, 451, 452, 550, 552, 554
 		//
 		$this->put('.');
 		if (!$this->checkResponse(250)) {
@@ -723,10 +721,9 @@ class SmtpClient
 	 */
 	public function noop()
 	{
-		/**
-		 * Code success : 250
-		 * Code error   : 500, 421
-		 */
+		//
+		// S: 250
+		//
 		$this->put('NOOP');
 
 		return $this->checkResponse(250);
@@ -739,10 +736,9 @@ class SmtpClient
 	 */
 	public function reset()
 	{
-		/**
-		 * Code success : 250
-		 * Code error   : 500, 501, 504, 421
-		 */
+		//
+		// S: 250
+		//
 		$this->put('RSET');
 
 		return $this->checkResponse(250);
@@ -755,11 +751,10 @@ class SmtpClient
 	 */
 	public function verify($str)
 	{
-		/**
-		 * Code success : 250, 251, 252
-		 * Code error   : 500, 501, 502, 504, 421
-		 * Code failure : 550, 551, 553
-		 */
+		//
+		// S: 250, 251, 252
+		// E: 550, 551, 553, 502, 504
+		//
 		$this->put(sprintf('VRFY %s', $str));
 
 		return $this->checkResponse(250, 251, 252);
@@ -771,12 +766,11 @@ class SmtpClient
 	 */
 	public function quit()
 	{
-		/**
-		 * Comme on est poli, on dit au revoir au serveur avec la commande QUIT
-		 *
-		 * Code success : 221
-		 * Code failure : 500
-		 */
+		//
+		// Comme on est poli, on dit au revoir au serveur avec la commande QUIT
+		//
+		// S: 221
+		//
 		if (is_resource($this->socket)) {
 			$this->put('QUIT');
 			fclose($this->socket);
