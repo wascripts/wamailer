@@ -364,7 +364,6 @@ class SmtpClient
 
 		$this->_lastCommand = (strpos($data, ':')) ? strtok($data, ':') : strtok($data, ' ');
 		$data .= "\r\n";
-		$total = strlen($data);
 		$this->log(sprintf('C: %s', $data));
 
 		stream_set_timeout($this->socket, ceil($this->iotimeout / 2));
