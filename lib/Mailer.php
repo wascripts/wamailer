@@ -117,6 +117,19 @@ abstract class Mailer
 	private static $smtp;
 
 	/**
+	 * Utilisée pour définir si la fonction mail() de PHP utilise un MTA local
+	 * (Sendmail ou équivalent) ou bien établit directement une connexion vers
+	 * un serveur SMTP défini dans sa configuration.
+	 * Si laissée vide, cette propriété est définie au premier appel de
+	 * Mailer::send() en vérifiant la valeur retournée par ini_get('sendmail_path').
+	 *
+	 * @see Mailer::send()
+	 *
+	 * @var boolean
+	 */
+	public static $php_use_smtp;
+
+	/**
 	 * Active ou désactive l’utilisation directe de sendmail pour l’envoi des emails
 	 *
 	 * @param boolean $use Active/désactive le mode sendmail
@@ -266,7 +279,9 @@ abstract class Mailer
 		// Si l’option PHP 'sendmail_path' est vide, cela signifie que PHP
 		// ouvre une connexion vers un serveur SMTP défini dans sa configuration.
 		//
-		$php_use_smtp = (ini_get('sendmail_path') == '');
+		if (is_null(self::$php_use_smtp)) {
+			self::$php_use_smtp = (ini_get('sendmail_path') == '');
+		}
 
 		//
 		// On récupère les en-têtes Subject et To qui doivent être transmis
@@ -281,7 +296,7 @@ abstract class Mailer
 			$email->headers->remove('Subject');
 		}
 
-		if ($php_use_smtp) {
+		if (self::$php_use_smtp) {
 			if (!is_null($header_to)) {
 				//
 				// La fonction mail() ouvre un socket vers un serveur SMTP.
@@ -330,7 +345,7 @@ abstract class Mailer
 
 		list($headers, $message) = explode("\r\n\r\n", $email->__toString(), 2);
 
-		if (!$php_use_smtp) {
+		if (!self::$php_use_smtp) {
 			$headers = str_replace("\r\n", PHP_EOL, $headers);
 			$message = str_replace("\r\n", PHP_EOL, $message);
 
@@ -345,7 +360,7 @@ abstract class Mailer
 			 * On remplace les séquences <CR><LF><LWS> par une simple espace.
 			 *
 			 * @see SKIP_LONG_HEADER_SEP routine in
-			 *      http://cvs.php.net/php-src/ext/standard/mail.c
+			 *      https://github.com/php/php-src/blob/master/ext/standard/mail.c
 			 * @see PHP Bug 24805 at http://bugs.php.net/bug.php?id=24805
 			 */
 			$subject = str_replace("\r\n\t", ' ', $subject);
@@ -363,7 +378,7 @@ abstract class Mailer
 
 		restore_error_handler();
 
-		if ($php_use_smtp) {
+		if (self::$php_use_smtp) {
 			ini_restore('sendmail_from');
 		}
 
