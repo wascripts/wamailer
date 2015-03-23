@@ -38,32 +38,32 @@ class Email
 	public $charset = 'ISO-8859-1';
 
 	/**
-	 * Bloc d’en-têtes de l’email
+	 * Bloc d’en-têtes de l’email (accès en lecture)
 	 *
 	 * @var Mime\Headers
 	 */
-	protected $_headers = null;
+	protected $headers = null;
 
 	/**
-	 * Partie texte brut de l’email
+	 * Partie texte brut de l’email (accès en lecture)
 	 *
 	 * @var Mime\Part
 	 */
-	protected $_textPart = null;
+	protected $textPart = null;
 
 	/**
-	 * Partie HTML de l’email
+	 * Partie HTML de l’email (accès en lecture)
 	 *
 	 * @var Mime\Part
 	 */
-	protected $_htmlPart = null;
+	protected $htmlPart = null;
 
 	/**
 	 * Fichiers joints à l’email
 	 *
 	 * @var array
 	 */
-	protected $_attachParts = array();
+	protected $attachParts = array();
 
 	/**
 	 * @var string
@@ -88,7 +88,7 @@ class Email
 	 */
 	public function __construct($charset = null)
 	{
-		$this->_headers = new Mime\Headers(array(
+		$this->headers = new Mime\Headers(array(
 			'Return-Path' => '',
 			'Date' => '',
 			'From' => '',
@@ -401,13 +401,13 @@ class Email
 			$charset = $this->charset;
 		}
 
-		$this->_textPart = new Mime\Part($message);
-		$this->_textPart->headers->set('Content-Type', 'text/plain');
-		$this->_textPart->headers->set('Content-Transfer-Encoding', '8bit');
-		$this->_textPart->headers->get('Content-Type')->param('charset', $charset);
+		$this->textPart = new Mime\Part($message);
+		$this->textPart->headers->set('Content-Type', 'text/plain');
+		$this->textPart->headers->set('Content-Transfer-Encoding', '8bit');
+		$this->textPart->headers->get('Content-Type')->param('charset', $charset);
 		$this->message_txt = '';
 
-		return $this->_textPart;
+		return $this->textPart;
 	}
 
 	/**
@@ -415,7 +415,7 @@ class Email
 	 */
 	public function removeTextBody()
 	{
-		$this->_textPart = null;
+		$this->textPart = null;
 		$this->message_txt = '';
 	}
 
@@ -431,13 +431,13 @@ class Email
 			$charset = $this->charset;
 		}
 
-		$this->_htmlPart = new Mime\Part($message);
-		$this->_htmlPart->headers->set('Content-Type', 'text/html');
-		$this->_htmlPart->headers->set('Content-Transfer-Encoding', '8bit');
-		$this->_htmlPart->headers->get('Content-Type')->param('charset', $charset);
+		$this->htmlPart = new Mime\Part($message);
+		$this->htmlPart->headers->set('Content-Type', 'text/html');
+		$this->htmlPart->headers->set('Content-Transfer-Encoding', '8bit');
+		$this->htmlPart->headers->get('Content-Type')->param('charset', $charset);
 		$this->message_txt = '';
 
-		return $this->_htmlPart;
+		return $this->htmlPart;
 	}
 
 	/**
@@ -445,7 +445,7 @@ class Email
 	 */
 	public function removeHTMLBody()
 	{
-		$this->_htmlPart = null;
+		$this->htmlPart = null;
 		$this->message_txt = '';
 	}
 
@@ -501,7 +501,7 @@ class Email
 		$attach->headers->get('Content-Disposition')->param('size', strlen($data));
 		$attach->headers->set('Content-Transfer-Encoding', 'base64');
 
-		$this->_attachParts[] = $attach;
+		$this->attachParts[] = $attach;
 		$this->message_txt = '';
 
 		return $attach;
@@ -512,7 +512,7 @@ class Email
 	 */
 	public function removeAttachments()
 	{
-		$this->_attachParts = array();
+		$this->attachParts = array();
 		$this->message_txt = '';
 	}
 
@@ -533,15 +533,15 @@ class Email
 		}
 
 		$rootPart = null;
-		$attachParts = $this->_attachParts;
+		$attachParts = $this->attachParts;
 
-		if (!is_null($this->_htmlPart)) {
-			$rootPart = $this->_htmlPart;
+		if (!is_null($this->htmlPart)) {
+			$rootPart = $this->htmlPart;
 
-			if (!is_null($this->_textPart)) {
+			if (!is_null($this->textPart)) {
 				$rootPart = new Mime\Part();
-				$rootPart->addSubPart($this->_textPart);
-				$rootPart->addSubPart($this->_htmlPart);
+				$rootPart->addSubPart($this->textPart);
+				$rootPart->addSubPart($this->htmlPart);
 				$rootPart->headers->set('Content-Type', 'multipart/alternative');
 			}
 
@@ -551,13 +551,13 @@ class Email
 					$name = $attach->headers->get('Content-Type')->param('name');
 					$regexp = '/<([^>]+=\s*)(["\'])cid:' . preg_quote($name, '/') . '\\2([^>]*)>/S';
 
-					if (!preg_match($regexp, $this->_htmlPart->body)) {
+					if (!preg_match($regexp, $this->htmlPart->body)) {
 						continue;
 					}
 
 					$cid = sprintf('%s@%s', md5(microtime().rand()), $this->hostname);
-					$this->_htmlPart->body = preg_replace($regexp,
-						'<\\1\\2cid:' . $cid . '\\2\\3>', $this->_htmlPart->body
+					$this->htmlPart->body = preg_replace($regexp,
+						'<\\1\\2cid:' . $cid . '\\2\\3>', $this->htmlPart->body
 					);
 					$attach->headers->set('Content-ID', "<$cid>");
 				}
@@ -577,8 +577,8 @@ class Email
 				$rootPart = $embedPart;
 			}
 		}
-		else if (!is_null($this->_textPart)) {
-			$rootPart = $this->_textPart;
+		else if (!is_null($this->textPart)) {
+			$rootPart = $this->textPart;
 		}
 
 		// filtrage nécessaire après la boucle de traitement des objets embarqués plus haut
@@ -622,41 +622,33 @@ class Email
 		return $this->headers_txt . $this->message_txt;
 	}
 
-	public function __set($name, $value)
-	{
-		switch ($name) {
-			case 'headers':
-			case 'textPart':
-			case 'htmlPart':
-				throw new Exception("Cannot setting $name attribute");
-				break;
-		}
-	}
-
 	public function __get($name)
 	{
 		switch ($name) {
 			case 'headers':
 			case 'textPart':
 			case 'htmlPart':
-				return $this->{'_'.$name};
+				return $this->{$name};
+				break;
+			default:
+				throw new Exception("Error while trying to get property '$name'");
 				break;
 		}
 	}
 
 	public function __clone()
 	{
-		$this->_headers = clone $this->_headers;
+		$this->headers = clone $this->headers;
 
-		if (!is_null($this->_textPart)) {
-			$this->_textPart = clone $this->_textPart;
+		if (!is_null($this->textPart)) {
+			$this->textPart = clone $this->textPart;
 		}
 
-		if (!is_null($this->_htmlPart)) {
-			$this->_htmlPart = clone $this->_htmlPart;
+		if (!is_null($this->htmlPart)) {
+			$this->htmlPart = clone $this->htmlPart;
 		}
 
-		foreach ($this->_attachParts as &$attach) {
+		foreach ($this->attachParts as &$attach) {
 			$attach = clone $attach;
 		}
 	}

@@ -31,18 +31,18 @@ use Exception;
 class Header
 {
 	/**
-	 * Nom de l’en-tête
+	 * Nom de l’en-tête (accès en lecture)
 	 *
 	 * @var string
 	 */
-	private $_name;
+	private $name;
 
 	/**
-	 * Valeur de l’en-tête
+	 * Valeur de l’en-tête (accès en lecture)
 	 *
 	 * @var string
 	 */
-	private $_value;
+	private $value;
 
 	/**
 	 * Liste des paramètres associés à la valeur de cet en-tête
@@ -81,8 +81,8 @@ class Header
 			}
 		}
 
-		$this->_name  = $name;
-		$this->_value = $value;
+		$this->name  = $name;
+		$this->value = $value;
 	}
 
 	/**
@@ -152,7 +152,7 @@ class Header
 	 */
 	public function append($str)
 	{
-		$this->_value .= self::sanitizeValue($str);
+		$this->value .= self::sanitizeValue($str);
 	}
 
 	/**
@@ -321,7 +321,7 @@ class Header
 	 */
 	public function __toString()
 	{
-		$value = $this->_value;
+		$value = $this->value;
 
 		foreach ($this->params as $pName => $pValue) {
 			if (empty($pValue)) {
@@ -347,7 +347,7 @@ class Header
 			$value .= sprintf('; %s=%s', $pName, $pValue);
 		}
 
-		$value = sprintf('%s: %s', $this->_name, $value);
+		$value = sprintf('%s: %s', $this->name, $value);
 
 		if ($this->folding) {
 			$value = wordwrap($value, 77, "\r\n\t");
@@ -360,22 +360,21 @@ class Header
 	{
 		switch ($name) {
 			case 'value':
-				$this->{'_'.$name} = self::sanitizeValue($value);
+				$this->{$name} = self::sanitizeValue($value);
 				break;
 		}
 	}
 
 	public function __get($name)
 	{
-		$value = null;
-
 		switch ($name) {
 			case 'name':
 			case 'value':
-				$value = $this->{'_'.$name};
+				return $this->{$name};
+				break;
+			default:
+				throw new Exception("Error while trying to get property '$name'");
 				break;
 		}
-
-		return $value;
 	}
 }

@@ -32,16 +32,16 @@ use Exception;
 class Part
 {
 	/**
-	 * Bloc d’en-têtes de cette partie
+	 * Bloc d’en-têtes de cette partie (accès en lecture)
 	 *
 	 * @var Headers
 	 */
-	public $headers   = null;
+	private $headers  = null;
 
 	/**
 	 * Contenu de cette partie
 	 *
-	 * @var mixed
+	 * @var string
 	 */
 	public $body      = null;
 
@@ -65,6 +65,8 @@ class Part
 	 * à savoir 998 octets + CRLF
 	 * Si cet attribut est placé à true, la limitation est de 78
 	 * octets + CRLF
+	 *
+	 * @see RFC 2822#2.1.1
 	 *
 	 * @var boolean
 	 */
@@ -195,13 +197,17 @@ class Part
 	{
 		$value = null;
 
-		if ($name == 'encoding') {
-			if ($encoding = $this->headers->get('Content-Transfer-Encoding')) {
-				$value = $encoding->value;
-			}
-			else {
-				$value = '7bit';
-			}
+		switch ($name) {
+			case 'headers':
+				$value = $this->headers;
+				break;
+			case 'encoding':
+				$encoding = $this->headers->get('Content-Transfer-Encoding');
+				$value = ($encoding) ? $encoding->value : '7bit';
+				break;
+			default:
+				throw new Exception("Error while trying to get property '$name'");
+				break;
 		}
 
 		return $value;

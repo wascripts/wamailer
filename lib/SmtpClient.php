@@ -168,28 +168,25 @@ class SmtpClient
 	private $fromCalled = false;
 
 	/**
-	 * Dernier code de réponse retourné par le serveur.
-	 * Accessible en lecture sous la forme $obj->responseCode
+	 * Dernier code de réponse retourné par le serveur (accès en lecture).
 	 *
 	 * @var integer
 	 */
-	private $_responseCode;
+	private $responseCode;
 
 	/**
-	 * Dernier message de réponse retourné par le serveur.
-	 * Accessible en lecture sous la forme $obj->responseData
+	 * Dernier message de réponse retourné par le serveur (accès en lecture).
 	 *
 	 * @var string
 	 */
-	private $_responseData;
+	private $responseData;
 
 	/**
-	 * Dernière commande transmise au serveur.
-	 * Accessible en lecture sous la forme $obj->lastCommand
+	 * Dernière commande transmise au serveur (accès en lecture).
 	 *
 	 * @var string
 	 */
-	private $_lastCommand;
+	private $lastCommand;
 
 	/**
 	 * Groupe de commandes en cours de traitement
@@ -259,11 +256,11 @@ class SmtpClient
 			}
 		}
 
-		$this->_responseCode = null;
-		$this->_responseData = null;
-		$this->fromCalled    = false;
-		$this->_lastCommand  = null;
-		$this->pipeline      = array();
+		$this->responseCode = null;
+		$this->responseData = null;
+		$this->fromCalled   = false;
+		$this->lastCommand  = null;
+		$this->pipeline     = array();
 
 		$useSSL   = preg_match('#^(ssl|tls)(v[.0-9]+)?://#', $host);
 		$startTLS = (!$useSSL && $this->opts['starttls']);
@@ -362,7 +359,7 @@ class SmtpClient
 			throw new Exception("The connection was closed!");
 		}
 
-		$this->_lastCommand = (strpos($data, ':')) ? strtok($data, ':') : strtok($data, ' ');
+		$this->lastCommand = (strpos($data, ':')) ? strtok($data, ':') : strtok($data, ' ');
 		$data .= "\r\n";
 		$this->log(sprintf('C: %s', $data));
 
@@ -404,10 +401,10 @@ class SmtpClient
 			$codes[] = $arg;
 		}
 
-		$this->pipeline[] = array('codes' => $codes, 'cmd' => $this->_lastCommand);
+		$this->pipeline[] = array('codes' => $codes, 'cmd' => $this->lastCommand);
 
 		if ($this->hasSupport('pipelining') && $this->opts['pipelining'] &&
-			in_array($this->_lastCommand, array(
+			in_array($this->lastCommand, array(
 				'RSET','MAIL FROM','SEND FROM','SOML FROM','SAML FROM','RCPT TO'
 			))
 		) {
@@ -419,14 +416,14 @@ class SmtpClient
 		$result = true;
 
 		for ($i = 0; $i < count($pipeline); $i++) {
-			$this->_responseData = '';
+			$this->responseData = '';
 
 			// voir commentaire de la propriété self::$iotimeout
 			$timeout = $this->iotimeout;
-			if ($this->_lastCommand == 'DATA') {
+			if ($this->lastCommand == 'DATA') {
 				$timeout /= 2;
 			}
-			else if ($this->_lastCommand == '.') {
+			else if ($this->lastCommand == '.') {
 				$timeout *= 2;
 			}
 
@@ -446,12 +443,12 @@ class SmtpClient
 				}
 
 				$this->log(sprintf('S: %s', $data));
-				$this->_responseCode  = substr($data, 0, 3);
-				$this->_responseData .= $data;
+				$this->responseCode  = substr($data, 0, 3);
+				$this->responseData .= $data;
 			}
 			while (!feof($this->socket) && $data[3] != ' ');
 
-			if (!in_array($this->_responseCode, $pipeline[$i]['codes'])) {
+			if (!in_array($this->responseCode, $pipeline[$i]['codes'])) {
 				$result = false;
 			}
 		}
@@ -486,7 +483,7 @@ class SmtpClient
 
 		// On récupère la liste des extensions supportées par ce serveur
 		$this->extensions = array();
-		$lines = explode("\r\n", trim($this->_responseData));
+		$lines = explode("\r\n", trim($this->responseData));
 
 		foreach ($lines as $line) {
 			$line  = substr($line, 4);// on retire le code réponse
@@ -799,7 +796,10 @@ class SmtpClient
 			case 'responseCode':
 			case 'responseData':
 			case 'lastCommand':
-				return $this->{'_'.$name};
+				return $this->{$name};
+				break;
+			default:
+				throw new Exception("Error while trying to get property '$name'");
 				break;
 		}
 	}

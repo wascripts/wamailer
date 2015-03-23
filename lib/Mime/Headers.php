@@ -37,9 +37,26 @@ class Headers implements \Iterator
 	 */
 	private $headers = array();
 
-	private $_it_tot = 0;
-	private $_it_ind = 0;
-	private $_it_obj = null;
+	/**
+	 * Utilisé pour permettre l’itération dans la liste des en-têtes (interface Iterator).
+	 *
+	 * @var integer
+	 */
+	private $it_tot = 0;
+
+	/**
+	 * Voir ci-dessus.
+	 *
+	 * @var integer
+	 */
+	private $it_ind = 0;
+
+	/**
+	 * Voir ci-dessus.
+	 *
+	 * @var Header
+	 */
+	private $it_obj = null;
 
 	/**
 	 * Constructeur de classe
@@ -132,31 +149,31 @@ class Headers implements \Iterator
 
 	public function current()
 	{
-		return $this->_it_obj->value;
+		return $this->it_obj->value;
 	}
 
 	public function key()
 	{
-		return $this->_it_obj->name;
+		return $this->it_obj->name;
 	}
 
 	public function next()
 	{
-		$this->_it_ind++;
+		$this->it_ind++;
 	}
 
 	public function rewind()
 	{
 		reset($this->headers);
-		$this->_it_tot = count($this->headers);
-		$this->_it_ind = 0;
+		$this->it_tot = count($this->headers);
+		$this->it_ind = 0;
 	}
 
 	public function valid()
 	{
-		if ($this->_it_ind < $this->_it_tot) {
+		if ($this->it_ind < $this->it_tot) {
 			$tmp = each($this->headers);
-			$this->_it_obj = $tmp['value'];
+			$this->it_obj = $tmp['value'];
 			$ret = true;
 		}
 		else {

@@ -11,8 +11,7 @@
  *
  * Les sources qui m’ont bien aidées :
  *
- * @link http://www.gnupg.org/(en)/documentation/index.html
- * @link http://lea-linux.org/cached/index/Reseau-secu-gpg-intro.html#
+ * @link https://www.gnupg.org/documentation/index.html
  * @link http://www.kfwebs.net/articles/article/15/PHP-Sendmail-classes
  */
 
@@ -148,12 +147,12 @@ class SecureMail extends Email
 		 * @see RFC 3156#3 - Content-Transfer-Encoding restrictions
 		 */
 		if ($this->_sign || $this->_encrypt) {
-			if (!is_null($this->_textPart)) {
-				$this->_textPart->encoding = 'quoted-printable';
+			if (!is_null($this->textPart)) {
+				$this->textPart->encoding = 'quoted-printable';
 			}
 
-			if (!is_null($this->_htmlPart)) {
-				$this->_htmlPart->encoding = 'quoted-printable';
+			if (!is_null($this->htmlPart)) {
+				$this->htmlPart->encoding = 'quoted-printable';
 			}
 		}
 
