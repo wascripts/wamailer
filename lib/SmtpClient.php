@@ -114,12 +114,12 @@ class SmtpClient
 		 *
 		 * @var array
 		 */
-		'stream_context_opts'   => array(
+		'stream_opts'   => array(
 			'ssl' => array(
 				'disable_compression' => true, // default value in PHP ≥ 5.6
 			)
 		),
-		'stream_context_params' => null,
+		'stream_params' => null,
 
 		/**
 		 * Le pipelining est la capacité à envoyer un groupe de commandes sans
@@ -276,8 +276,8 @@ class SmtpClient
 		//
 		// Ouverture du socket de connexion au serveur SMTP
 		//
-		$context_opts   = $this->opts['stream_context_opts'];
-		$context_params = $this->opts['stream_context_params'];
+		$context_opts   = $this->opts['stream_opts'];
+		$context_params = $this->opts['stream_params'];
 		$context = stream_context_create($context_opts, $context_params);
 
 		$this->socket = stream_socket_client(
