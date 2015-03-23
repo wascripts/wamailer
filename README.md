@@ -19,11 +19,13 @@ Fonctionnalités
  * Destinataires multiples directs, en CC ou BCC
  * Support des attachements de fichiers
  * Support des images embarquées (applicable aussi bien à d’autres types de fichier)
- * Support des encodages de transfert 8bit, quoted-printable, base64 et binary
- * Support d’Unicode (avec l’UTF-8 seulement)
- * Ajout et modification d’entêtes d’email
+ * Support des codages de transfert 8bit, quoted-printable et base64
+ * Support d’Unicode via le codage UTF-8
+ * Ajout, modification et suppression d’en-têtes d’email
  * Reformatage des messages sur la limite de 78 caractères par ligne (word wrap)
- * Support SMTP basique
+ * Support SMTP complet
+ * Méthodes d'authentification CRAM-MD5, LOGIN et PLAIN (SMTP)
+ * Sécurisation possible des connexions avec SSL/TLS
  * Support des appels systèmes à Sendmail ou compatible
  * Support expérimental d’OpenPGP/MIME (voir la page OpenPgp)
 
@@ -36,7 +38,7 @@ Incluez simplement la classe dans vos scripts. Exemple d’utilisation :
     require 'wamailer/mailer.class.php';
 
     $email = new Email();
-    $email->setFrom('my@domain.example', 'MyName');
+    $email->setFrom('me@domain.tld', 'MyName');
     $email->addRecipient('other@domain.tld');
     $email->setSubject('This is the subject');
     $email->setTextBody('This is the body of mail');

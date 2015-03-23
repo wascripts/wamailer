@@ -99,8 +99,12 @@ class Mailer_SMTP
 		 *
 		 * @var array
 		 */
-		'stream_context_options' => null,
-		'stream_context_params'  => null,
+		'stream_options' => array(
+			'ssl' => array(
+				'disable_compression' => true, // default value in PHP ≥ 5.6
+			)
+		),
+		'stream_params'  => null,
 
 		/**
 		 * Le pipelining est la capacité à envoyer un groupe de commandes sans
@@ -246,20 +250,23 @@ class Mailer_SMTP
 		$this->_lastCommand  = null;
 		$this->pipeline      = array();
 
-		$startTLS = false;
-		if (!preg_match('#^(ssl|tls)(v[.0-9]+)?://#', $host)) {
-			$startTLS = $this->opts['starttls'];
+		$useSSL   = preg_match('#^(ssl|tls)(v[.0-9]+)?://#', $host);
+		$startTLS = (!$useSSL && $this->opts['starttls']);
+
+		// check de l'extension openssl si besoin
+		if (($useSSL || $startTLS) && !extension_loaded('openssl')) {
+			throw new Exception("Cannot use SSL/TLS because the openssl extension isn't loaded!");
 		}
 
 		//
 		// Ouverture du socket de connexion au serveur SMTP
 		//
 		$params = array();
-		if (is_array($this->opts['stream_context_options'])) {
-			$params[] = $this->opts['stream_context_options'];
+		if (is_array($this->opts['stream_options'])) {
+			$params[] = $this->opts['stream_options'];
 
-			if (is_array($this->opts['stream_context_params'])) {
-				$params[] = $this->opts['stream_context_params'];
+			if (is_array($this->opts['stream_params'])) {
+				$params[] = $this->opts['stream_params'];
 			}
 		}
 
@@ -275,7 +282,7 @@ class Mailer_SMTP
 		);
 
 		if (!$this->socket) {
-			throw new Exception("Mailer_SMTP::connect(): Failed to connect to SMTP server ($errno - $errstr)");
+			throw new Exception("Failed to connect to SMTP server ($errno - $errstr)");
 		}
 
 		stream_set_timeout($this->socket, $this->timeout);
@@ -298,7 +305,7 @@ class Mailer_SMTP
 		//
 		if ($startTLS) {
 			if (!$this->hasSupport('STARTTLS')) {
-				throw new Exception("Mailer_SMTP::connect(): SMTP server doesn't support STARTTLS command");
+				throw new Exception("SMTP server doesn't support STARTTLS command");
 			}
 
 			$this->put('STARTTLS');
@@ -306,12 +313,13 @@ class Mailer_SMTP
 				return false;
 			}
 
-			if (!stream_socket_enable_crypto(
-				$this->socket,
-				true,
-				STREAM_CRYPTO_METHOD_TLS_CLIENT
-			)) {
-				throw new Exception("Mailer_SMTP::connect(): Cannot enable TLS encryption");
+			$crypto_method = STREAM_CRYPTO_METHOD_TLS_CLIENT;
+			if (isset($this->opts['stream_options']['ssl']['crypto_method'])) {
+				$crypto_method = $this->opts['stream_options']['ssl']['crypto_method'];
+			}
+
+			if (!stream_socket_enable_crypto($this->socket, true, $crypto_method)) {
+				throw new Exception("Cannot enable TLS encryption");
 			}
 
 			$this->hello($this->hostname);
@@ -342,13 +350,13 @@ class Mailer_SMTP
 	public function put($data)
 	{
 		if (!$this->isConnected()) {
-			throw new Exception("Mailer_SMTP::put(): Connection was closed!");
+			throw new Exception("Connection was closed!");
 		}
 
 		$this->_lastCommand = (strpos($data, ':')) ? strtok($data, ':') : strtok($data, ' ');
 		$data .= "\r\n";
 		$total = strlen($data);
-		$this->log($data);
+		$this->log(sprintf('C: %s', $data));
 
 		while ($data) {
 			$bw = fwrite($this->socket, $data);
@@ -357,7 +365,7 @@ class Mailer_SMTP
 				$md = stream_get_meta_data($this->socket);
 
 				if ($md['timed_out']) {
-					throw new Exception("Mailer_SMTP::put(): Connection timed out!");
+					throw new Exception("Connection timed out!");
 				}
 
 				break;
@@ -375,7 +383,7 @@ class Mailer_SMTP
 	public function checkResponse()
 	{
 		if (!$this->isConnected()) {
-			throw new Exception("Mailer_SMTP::checkResponse(): Connection was closed!");
+			throw new Exception("Connection was closed!");
 		}
 
 		$codes = array();
@@ -410,13 +418,13 @@ class Mailer_SMTP
 					$md = stream_get_meta_data($this->socket);
 
 					if ($md['timed_out']) {
-						throw new Exception("Mailer_SMTP::checkResponse(): Connection timed out!");
+						throw new Exception("Connection timed out!");
 					}
 
 					break;
 				}
 
-				$this->log($data);
+				$this->log(sprintf('S: %s', $data));
 				$this->_responseCode  = substr($data, 0, 3);
 				$this->_responseData .= $data;
 			}
@@ -522,7 +530,7 @@ class Mailer_SMTP
 	public function authenticate($username, $passwd)
 	{
 		if (!($available_methods = $this->hasSupport('AUTH'))) {
-			throw new Exception("Mailer_SMTP::authenticate(): SMTP server doesn't support authentication");
+			throw new Exception("SMTP server doesn't support authentication");
 		}
 
 		$available_methods = explode(' ', $available_methods);
@@ -582,7 +590,7 @@ class Mailer_SMTP
 			return true;
 		}
 
-		throw new Exception("Mailer_SMTP::authenticate(): Cannot select an authentication mechanism");
+		throw new Exception("Cannot select an authentication mechanism");
 	}
 
 	/**
