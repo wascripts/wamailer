@@ -124,7 +124,7 @@ class Part
 		$body = $this->body;
 
 		if ($this->isMultiPart()) {
-			$this->boundary = '--=_Part_' . md5(microtime());
+			$this->boundary = '--=_Part_' . md5(microtime().mt_rand());
 			$this->headers->get('Content-Type')->param('boundary', $this->boundary);
 
 			if ($body != '') {

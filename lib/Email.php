@@ -525,7 +525,7 @@ class Email
 	{
 		$this->headers->set('Date', date(DATE_RFC2822));
 		$this->headers->set('MIME-Version', '1.0');
-		$this->headers->set('Message-ID', sprintf('<%s@%s>', md5(microtime().rand()), $this->hostname));
+		$this->headers->set('Message-ID', sprintf('<%d.%d@%s>', time(), mt_rand(), $this->hostname));
 
 		$this->headers_txt = $this->headers->__toString();
 		if (!empty($this->message_txt)) {
@@ -555,9 +555,10 @@ class Email
 						continue;
 					}
 
-					$cid = sprintf('%s@%s', md5(microtime().rand()), $this->hostname);
+					$cid = sprintf('%d.%d@%s', time(), mt_rand(), $this->hostname);
 					$this->htmlPart->body = preg_replace($regexp,
-						'<\\1\\2cid:' . $cid . '\\2\\3>', $this->htmlPart->body
+						"<\\1\\2cid:$cid\\2\\3>",
+						$this->htmlPart->body
 					);
 					$attach->headers->set('Content-ID', "<$cid>");
 				}
