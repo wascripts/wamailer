@@ -253,7 +253,7 @@ class Header
 					 * @see RFC 2047#5
 					 */
 					$tmplen -= ($tmplen % 4);
-					$tmplen = floor(($tmplen/4)*3);
+					$tmplen = (integer) floor(($tmplen/4)*3);
 				}
 
 				if ($is_utf8) {
