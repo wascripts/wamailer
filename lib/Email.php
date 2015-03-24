@@ -523,7 +523,10 @@ class Email
 	 */
 	public function __toString()
 	{
-		$this->headers->set('Date', date(DATE_RFC2822));
+		if (!$this->headers->get('Date')) {
+			$this->headers->set('Date', date(DATE_RFC2822));
+		}
+
 		$this->headers->set('MIME-Version', '1.0');
 		$this->headers->set('Message-ID', sprintf('<%d.%d@%s>', time(), mt_rand(), $this->hostname));
 
