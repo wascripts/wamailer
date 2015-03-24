@@ -398,7 +398,16 @@ class SmtpClient
 
 		for ($i = 0; $i < $numargs; $i++) {
 			$arg = func_get_arg($i);
-			$codes[] = $arg;
+			if (is_array($arg)) {
+				$codes = array_merge($codes, $arg);
+			}
+			else {
+				$codes[] = $arg;
+			}
+		}
+
+		if (count($codes) == 0) {
+			throw new Exception("No response code given!");
 		}
 
 		$this->pipeline[] = array('codes' => $codes, 'cmd' => $this->lastCommand);
@@ -660,7 +669,7 @@ class SmtpClient
 		$params = (!empty($params)) ? ' ' . $params : '';
 		$this->put(sprintf('RCPT TO:<%s>%s', $email, $params));
 
-		return $this->checkResponse(250, 251);
+		return $this->checkResponse(array(250, 251));
 	}
 
 	/**
@@ -753,7 +762,7 @@ class SmtpClient
 		//
 		$this->put(sprintf('VRFY %s', $str));
 
-		return $this->checkResponse(250, 251, 252);
+		return $this->checkResponse(array(250, 251, 252));
 	}
 
 	/**
