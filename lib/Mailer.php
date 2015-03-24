@@ -296,51 +296,28 @@ abstract class Mailer
 			$email->headers->remove('Subject');
 		}
 
-		if (self::$php_use_smtp) {
-			if (!is_null($recipients)) {
-				//
-				// La fonction mail() ouvre un socket vers un serveur SMTP.
-				// On peut laisser l’en-tête To pour la personnalisation.
-				// Il faut par contre passer une liste d’adresses débarassée
-				// de cette personnalisation en argument de la fonction mail()
-				// sous peine d’obtenir une erreur.
-				//
-				$recipients = $recipients->value;
-				$recipients = implode(', ', self::clearAddressList($recipients));
-			}
+		if (!is_null($recipients)) {
+			$recipients = $recipients->value;
 
-			//
-			// La fonction mail() va parser elle-même les entêtes Cc et Bcc
-			// pour passer les adresses destinataires au serveur SMTP.
-			// Il est donc indispensable de nettoyer l’entête Cc de toute
-			// personnalisation sous peine d’obtenir une erreur.
-			//
-			$header_cc = $email->headers->get('Cc');
-			if (!is_null($header_cc)) {
-				$header_cc->value = implode(', ',
-					self::clearAddressList($header_cc->value)
-				);
+			if (!self::$php_use_smtp) {
+				//
+				// Sendmail parse les en-têtes To, Cc et Bcc s’ils sont
+				// présents pour récupérer la liste des adresses destinataire.
+				// On passe déjà la liste des destinataires principaux (To)
+				// en argument de la fonction mail(), donc on supprime l’en-tête To
+				//
+				$email->headers->remove('To');
 			}
+		}
 
+		if (self::$php_use_smtp && !is_null($rPath)) {
 			//
 			// La fonction mail() utilise prioritairement la valeur de l’option
 			// sendmail_from comme adresse à passer dans la commande MAIL FROM
 			// (adresse qui sera utilisée par le serveur SMTP pour forger l’entête
 			// Return-Path). On donne la valeur de $rPath à l’option sendmail_from
 			//
-			if (!is_null($rPath)) {
-				ini_set('sendmail_from', $rPath);
-			}
-		}
-		else if (!is_null($recipients)) {
-			//
-			// Sendmail parse les en-têtes To, Cc et Bcc s’ils sont
-			// présents pour récupérer la liste des adresses destinataire.
-			// On passe déjà la liste des destinataires principaux (To)
-			// en argument de la fonction mail(), donc on supprime l’en-tête To
-			//
-			$recipients = $recipients->value;
-			$email->headers->remove('To');
+			ini_set('sendmail_from', $rPath);
 		}
 
 		list($headers, $message) = explode("\r\n\r\n", $email->__toString(), 2);
