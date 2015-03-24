@@ -334,14 +334,16 @@ abstract class Mailer
 			 * séquences <LF> par <CR><LF> sans vérifier si un <CR> est déjà
 			 * présent, donnant ainsi une séquence <CR><CR><LF> faussant le
 			 * marquage de fin de bloc des en-têtes.
-			 * On remplace les séquences <CR><LF><LWS> par une simple espace.
+			 * On normalise quand même les fins de ligne sur les en-têtes
+			 * subject et to, même si cela signifie que les plis seront remplacés
+			 * par des espaces sur les systèmes UNIX-like.
 			 *
 			 * @see SKIP_LONG_HEADER_SEP routine in
 			 *      https://github.com/php/php-src/blob/master/ext/standard/mail.c
 			 * @see PHP Bug 24805 at http://bugs.php.net/bug.php?id=24805
 			 */
-			$subject = str_replace("\r\n\t", ' ', $subject);
-			$recipients = str_replace("\r\n\t", ' ', $recipients);
+			$subject = str_replace("\r\n", PHP_EOL, $subject);
+			$recipients = str_replace("\r\n", PHP_EOL, $recipients);
 		}
 
 		set_error_handler(array(__CLASS__, 'errorHandler'));
