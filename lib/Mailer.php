@@ -288,7 +288,7 @@ abstract class Mailer
 		// en argument de la fonction mail().
 		//
 		$subject = $email->headers->get('Subject');
-		$header_to = $email->headers->get('To');
+		$recipients = $email->headers->get('To');
 
 		if (!is_null($subject)) {
 			$subject = $subject->value;
@@ -297,7 +297,7 @@ abstract class Mailer
 		}
 
 		if (self::$php_use_smtp) {
-			if (!is_null($header_to)) {
+			if (!is_null($recipients)) {
 				//
 				// La fonction mail() ouvre un socket vers un serveur SMTP.
 				// On peut laisser l’en-tête To pour la personnalisation.
@@ -305,7 +305,7 @@ abstract class Mailer
 				// de cette personnalisation en argument de la fonction mail()
 				// sous peine d’obtenir une erreur.
 				//
-				$recipients = $header_to->value;
+				$recipients = $recipients->value;
 				$recipients = implode(', ', self::clearAddressList($recipients));
 			}
 
@@ -332,14 +332,14 @@ abstract class Mailer
 				ini_set('sendmail_from', $rPath);
 			}
 		}
-		else if (!is_null($header_to)) {
+		else if (!is_null($recipients)) {
 			//
 			// Sendmail parse les en-têtes To, Cc et Bcc s’ils sont
 			// présents pour récupérer la liste des adresses destinataire.
 			// On passe déjà la liste des destinataires principaux (To)
 			// en argument de la fonction mail(), donc on supprime l’en-tête To
 			//
-			$recipients = $header_to->value;
+			$recipients = $recipients->value;
 			$email->headers->remove('To');
 		}
 
