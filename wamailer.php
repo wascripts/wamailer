@@ -19,6 +19,10 @@ spl_autoload_register(function ($class) {
 	$base_dir  = __DIR__ . '/lib';
 
 	// does the class use the namespace prefix?
+	if (!strpos($class, '\\')) {
+		return null;
+	}
+
 	list($prefix, $relative_class) = explode('\\', $class, 2);
 
 	if ($my_prefix !== $prefix) {
