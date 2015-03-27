@@ -189,10 +189,10 @@ class Header
 	 * @see RFC 2047
 	 * @see RFC 2822
 	 *
-	 * @param string $header  Nom de l’en-tête concerné
-	 * @param string $header  Valeur d’en-tête à encoder
+	 * @param string $name    Nom de l’en-tête concerné
+	 * @param string $value   Valeur d’en-tête à encoder
 	 * @param string $charset Jeu de caractères utilisé
-	 * @param string $token
+	 * @param string $token   Nom du token ('phrase', 'text' ou 'comment')
 	 *
 	 * @return string
 	 */
