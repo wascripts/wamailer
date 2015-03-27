@@ -185,6 +185,10 @@ class Header
 	 * Autrement, des guillemets peuvent néanmoins être ajoutés aux extrémités
 	 * si des caractères interdits pour le token considéré sont présents.
 	 *
+	 * @see RFC 2045
+	 * @see RFC 2047
+	 * @see RFC 2822
+	 *
 	 * @param string $header  Nom de l’en-tête concerné
 	 * @param string $header  Valeur d’en-tête à encoder
 	 * @param string $charset Jeu de caractères utilisé
@@ -194,124 +198,152 @@ class Header
 	 */
 	public static function encode($name, $value, $charset, $token = 'text')
 	{
-		if (preg_match('/[\x00-\x1F\x7F-\xFF]/', $value)) {
-			$maxlen = 76;
-			$sep = "\r\n\t";
+		$charlist = '\x00-\x1F\x7F-\xFF'; // non printable + non us-ascii
 
-			switch ($token) {
-				case 'comment':
-					$charlist = '\x00-\x1F\x22\x28\x29\x3A\x3D\x3F\x5F\x7F-\xFF';
-					break;
-				case 'phrase':
-					$charlist = '\x00-\x1F\x22-\x29\x2C\x2E\x3A\x40\x5B-\x60\x7B-\xFF';
-					break;
-				case 'text':
-				default:
-					$charlist = '\x00-\x1F\x3A\x3D\x3F\x5F\x7F-\xFF';
-					break;
+		if (!preg_match("/[$charlist]/", $value)) {
+			if ($token != 'text' && preg_match('/[^A-Z0-9!#$%&\'*+\/=?^_`{|}~-]/i', $value)) {
+				$value = '"'.addcslashes($value, '\\"').'"';
 			}
 
-			/**
-			 * Si le nombre d’octets à encoder représente plus de 33% de la chaîne,
-			 * nous utiliserons l’encodage base64 qui garantit une chaîne encodée 33%
-			 * plus longue que l’originale, sinon, on utilise l’encodage "Q".
-			 * La RFC 2047 recommande d’utiliser pour chaque cas l’encodage produisant
-			 * le résultat le plus court.
-			 *
-			 * @see RFC 2045#6.8
-			 * @see RFC 2047#4
-			 */
-			$q = preg_match_all("/[$charlist]/", $value, $matches);
-			$strlen   = strlen($value);
-			$encoding = (($q / $strlen) < 0.33) ? 'Q' : 'B';
-			$template = sprintf('=?%s?%s?%%s?=%s', $charset, $encoding, $sep);
-			$maxlen   = ($maxlen - strlen($template) + strlen($sep) + 2);// + 2 pour le %s dans le modèle
-			$is_utf8  = (strcasecmp($charset, 'UTF-8') == 0);
-			$newbody  = '';
-			$pos = 0;
+			return $value;
+		}
 
-			while ($pos < $strlen) {
-				$tmplen = $maxlen;
-				if ($newbody == '') {
-					$tmplen -= strlen($name . ': ');
-					if ($encoding == 'Q') {
-						$tmplen++;
-					}
-				}
+		if ($token == 'phrase') {
+			// "#$%&'(),.:;<=>?@[\]^_`{|}~
+			$charlist .= '\x22-\x29\x2C\x2E\x3A-\x40\x5B-\x60\x7B-\x7E';
+		}
+		else {
+			$charlist .= '\x3A\x3D\x3F\x5F';// :=?_
+
+			if ($token == 'comment') {
+				$charlist .= '\x22\x28\x29';// "()
+			}
+		}
+
+		/**
+		 * Si le nombre d’octets à encoder représente plus de 33% de la chaîne,
+		 * nous utiliserons l’encodage base64 qui garantit une chaîne encodée 33%
+		 * plus longue que l’originale, sinon, on utilise l’encodage "Q".
+		 * La RFC 2047 recommande d’utiliser pour chaque cas l’encodage produisant
+		 * le résultat le plus court.
+		 *
+		 * @see RFC 2045#6.8
+		 * @see RFC 2047#4
+		 */
+		$q = preg_match_all("/[$charlist]/", $value, $matches);
+
+		$maxlen   = 75;
+		$encoding = (($q / strlen($value)) < 0.33) ? 'Q' : 'B';
+		$template = sprintf('=?%s?%s?%%s?=', $charset, $encoding);
+		$maxlen   = ($maxlen - strlen($template) + 2);// + 2 pour le %s résultant dans le modèle
+		$is_utf8  = (strcasecmp($charset, 'UTF-8') == 0);
+		$output   = '';
+
+		$_utf8test = array(
+			0x80 => 0, 0xE0 => 0xC0, 0xF0 => 0xE0, 0xF8 => 0xF0, 0xFC => 0xF8, 0xFE => 0xFC
+		);
+
+		/**
+		 * Si on travaille en Quoted Printable, on fait l'encodage *avant* de
+		 * travailler sur la chaîne car c'est beaucoup plus simple ensuite pour
+		 * obtenir la bonne longueur.
+		 * Si on travaille en base64, le codage se fait à la fin de chaque
+		 * itération dans la boucle de traitement.
+		 */
+		if ($encoding == 'Q') {
+			$replace_pairs = array_flip($matches[0]);
+			array_walk($replace_pairs,
+				function (&$val, $key) { $val = sprintf('=%02X', ord($key)); }
+			);
+			// Le signe égal doit être remplacé en premier !
+			$replace_pairs = array_merge(array('=' => '=3D', ' ' => '_'), $replace_pairs);
+
+			$value = strtr($value, $replace_pairs);
+		}
+
+		while ($value) {
+			$chunk_len = $maxlen;
+			if ($output == '') {
+				$chunk_len -= strlen($name . ':');
+			}
+
+			if ($encoding == 'B') {
+				/**
+				 * La longueur de l'encoded-text' doit être un multiple de 4
+				 * pour ne pas casser l’encodage base64
+				 *
+				 * @see RFC 2047#5
+				 */
+				$chunk_len -= ($chunk_len % 4);
+				$chunk_len  = (integer) floor(($chunk_len/4)*3);
+			}
+
+			$chunk = substr($value, 0, $chunk_len);
+			$check_utf8 = false;
+
+			if (strlen($chunk) == $chunk_len) {
+				$check_utf8 = $is_utf8;
 
 				if ($encoding == 'Q') {
-					$q = preg_match_all("/[$charlist]/", substr($value, $pos, $tmplen), $matches);
-					// chacun des octets trouvés prendra trois fois plus de place dans
-					// la chaîne encodée. On retranche cette valeur de la longueur du tronçon
-					$tmplen -= ($q * 2);
+					while ($chunk[$chunk_len-1] == '=' || $chunk[$chunk_len-2] == '=') {
+						$chunk = substr($chunk, 0, -1);
+						$chunk_len--;
+					}
+
+					if ($chunk[$chunk_len-3] != '=') {
+						$check_utf8 = false;
+					}
 				}
-				else {
-					/**
-					 * La longueur de l'encoded-text' doit être un multiple de 4
-					 * pour ne pas casser l’encodage base64
-					 *
-					 * @see RFC 2047#5
-					 */
-					$tmplen -= ($tmplen % 4);
-					$tmplen = (integer) floor(($tmplen/4)*3);
-				}
+			}
 
-				if ($is_utf8) {
-					/**
-					 * Il est interdit de sectionner un caractère multi-octet.
-					 * On teste chaque octet en partant de la fin du tronçon en cours
-					 * jusqu’à tomber sur un caractère ascii ou l’octet de début de
-					 * séquence d’un caractère multi-octets.
-					 * On vérifie alors qu’il y bien $m octets qui suivent (le cas échéant).
-					 * Si ce n’est pas le cas, on réduit la longueur du tronçon.
-					 *
-					 * @see RFC 2047#5
-					 */
-					$_utf8test = array(
-						0x80 => 0, 0xE0 => 0xC0, 0xF0 => 0xE0, 0xF8 => 0xF0, 0xFC => 0xF8, 0xFE => 0xFC
-					);
+			if ($check_utf8) {
+				/**
+				 * Il est interdit de sectionner un caractère multi-octet.
+				 * On teste chaque octet en partant de la fin du tronçon en cours
+				 * jusqu’à tomber sur un caractère ascii ou l’octet de début de
+				 * séquence d’un caractère multi-octets.
+				 * On vérifie alors qu’il y bien $m octets qui suivent (le cas échéant).
+				 * Si ce n’est pas le cas, on réduit la longueur du tronçon.
+				 *
+				 * @see RFC 2047#5
+				 *
+				 * Si quoted-printable, on progresse par séquence de 3 (=XX).
+				 * Si base64, le codage n'est pas encore fait, donc on progresse
+				 * octet par octet.
+				 */
 
-					for ($i = min(($pos + $tmplen), $strlen), $c = 1; $i > $pos; $i--, $c++) {
-						$d = ord($value[$i-1]);
+				$v = ($encoding == 'Q') ? 3 : 1;
+				for ($i = $chunk_len, $c = $v; $i > 0; $i -= $v, $c += $v) {
+					$char = substr($chunk, ($i - $v), $v);
+					$d = ($encoding == 'Q') ? $d = hexdec(ltrim($char, '=')) : ord($char);
 
-						reset($_utf8test);
-						for ($m = 1; $m <= 6; $m++) {
-							$test = each($_utf8test);
-							if (($d & $test[0]) == $test[1]) {
-								if ($c < $m) {
-									$tmplen -= $c;
-								}
-								break 2;
+					reset($_utf8test);
+					for ($m = 1; $m <= 6; $m++) {
+						$test = each($_utf8test);
+						if (($d & $test[0]) == $test[1]) {
+							if ($c < ($m*$v)) {
+								$chunk_len -= $c;
+								$chunk = substr($chunk, 0, $chunk_len);
 							}
+							break 2;
 						}
 					}
 				}
-
-				$tmp = substr($value, $pos, $tmplen);
-				if ($encoding == 'Q') {
-					$tmp = preg_replace_callback("/([$charlist])/",
-						function ($m) { return sprintf('=%02X', ord($m[1])); },
-						$tmp
-					);
-					$tmp = str_replace(' ', '_', $tmp);
-				}
-				else {
-					$tmp = base64_encode($tmp);
-				}
-
-				$newbody .= sprintf($template, $tmp);
-				$pos += $tmplen;
 			}
 
-			$value = rtrim($newbody);
-		}
-		else if ($token != 'text') {
-			if (preg_match('/[^!#$%&\'*+\/0-9=?a-z^_`{|}~-]/', $value)) {
-				$value = '"'.$value.'"';
+			if ($output) {
+				$output .= "\r\n\t";
 			}
+
+			if ($encoding == 'B') {
+				$chunk = base64_encode($chunk);
+			}
+
+			$output .= sprintf($template, $chunk);
+			$value = substr($value, $chunk_len);
 		}
 
-		return $value;
+		return $output;
 	}
 
 	/**
@@ -350,7 +382,7 @@ class Header
 		$value = sprintf('%s: %s', $this->name, $value);
 
 		if ($this->folding) {
-			$value = wordwrap($value, 77, "\r\n\t");
+			$value = wordwrap($value, 78, "\r\n\t");
 		}
 
 		return $value;
