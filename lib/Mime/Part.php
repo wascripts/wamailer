@@ -61,10 +61,13 @@ class Part
 
 	/**
 	 * Limitation de longueur des lignes de texte.
-	 * Par défaut, la limitation est celle imposée par la RFC2822,
-	 * à savoir 998 octets + CRLF
-	 * Si cet attribut est placé à true, la limitation est de 78
-	 * octets + CRLF
+	 * Si cet attribut est placé à true, la limitation des lignes de texte
+	 * est de 78 octets + <CR><LF>.
+	 *
+	 * De plus, si une ligne dépasse 998 octets + <CR><LF>, le codage
+	 * quoted-printable ou base64 (si l'encoding de base est 'binary') est
+	 * automatiquement utilisé pour garantir la bonne livraison du message
+	 * par les MTA.
 	 *
 	 * @see RFC 2822#2.1.1
 	 *
@@ -121,6 +124,25 @@ class Part
 			$this->headers->set('Content-Type', 'application/octet-stream');
 		}
 
+		if ($encoding = $this->headers->get('Content-Transfer-Encoding')) {
+			$encoding = strtolower($encoding->value);
+		}
+
+		// RFC 2045#6.4
+		// Le type multipart est restreint aux codages 7bit, 8bit et binary,
+		// cela pour éviter que des données soient codées plusieurs fois.
+		$encoding_list = array('7bit', '8bit', 'binary');
+
+		if (!$this->isMultiPart()) {
+			$encoding_list[] = 'base64';
+			$encoding_list[] = 'quoted-printable';
+		}
+
+		if (!in_array($encoding, $encoding_list)) {
+			$this->headers->remove('Content-Transfer-Encoding');
+			$encoding = '7bit';
+		}
+
 		$body = $this->body;
 
 		if ($this->isMultiPart()) {
@@ -133,29 +155,40 @@ class Part
 
 			foreach ($this->subparts as $subpart) {
 				$body .= '--' . $this->boundary . "\r\n";
-				$body .= !is_string($subpart) ? $subpart->__toString() : $subpart;
+				$body .= (!is_string($subpart)) ? $subpart->__toString() : $subpart;
 				$body .= "\r\n";
 			}
 
 			$body .= '--' . $this->boundary . "--\r\n";
 		}
 		else {
-			if ($encoding = $this->headers->get('Content-Transfer-Encoding')) {
-				$encoding = strtolower($encoding->value);
-			}
-
-			if (!in_array($encoding, array('7bit', '8bit', 'quoted-printable', 'base64', 'binary'))) {
-				$this->headers->remove('Content-Transfer-Encoding');
-				$encoding = '7bit';
+			/**
+			 * Chaque ligne ne DOIT PAS faire plus de 998 caractères.
+			 * Si c’est le cas, on passe sur un codage quoted-printable pour
+			 * des données lisibles, sinon sur du base64.
+			 *
+			 * @see RFC 2045#2.7, 2045#2.8, 2822#2.1.1
+			 */
+			if ($encoding != 'quoted-printable' && $encoding != 'base64' &&
+				preg_match('/^.{998}[^\r\n]/m', $body)
+			) {
+				$encoding = ($encoding == 'binary') ? 'base64' : 'quoted-printable';
+				$this->headers->set('Content-Transfer-Encoding', $encoding);
 			}
 
 			switch ($encoding) {
 				case 'quoted-printable':
 					/**
-					 * Encodage en chaîne à guillemets
+					 * Encodage en chaîne à guillemets.
+					 *
+					 * quoted_printable_encode() encode également les caractères
+					 * <CR> et <LF> s’ils ne font pas partie d’une paire <CR><LF>.
+					 * On normalise les fins de ligne pour éviter ça et garantir
+					 * un texte un minimum lisible en l’absence de décodage.
 					 *
 					 * @see RFC 2045#6.7
 					 */
+					$body = preg_replace("/\r\n?|\n/", "\r\n", $body);
 					$body = quoted_printable_encode($body);
 					break;
 				case 'base64':
@@ -173,12 +206,14 @@ class Part
 					/**
 					 * Limitation sur les longueurs des lignes de texte.
 					 * La limite basse est de 78 caractères par ligne.
-					 * En tout état de cause, chaque ligne ne DOIT PAS
-					 * faire plus de 998 caractères.
+					 * La limite haute de 998 caractères est déjà traitée par
+					 * le bloc de code plus haut.
 					 *
 					 * @see RFC 2822#2.1.1
 					 */
-					$body = Mime::wordwrap($body, $this->wraptext ? 78 : 998);
+					if ($this->wraptext) {
+						$body = Mime::wordwrap($body, 78);
+					}
 					break;
 			}
 		}
