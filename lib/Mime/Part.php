@@ -212,7 +212,7 @@ class Part
 					 * @see RFC 2822#2.1.1
 					 */
 					if ($this->wraptext) {
-						$body = Mime::wordwrap($body, 78);
+						$body = wordwrap($body, 78, "\r\n");
 					}
 					break;
 			}

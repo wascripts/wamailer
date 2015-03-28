@@ -31,25 +31,6 @@ use Exception;
 class Mime
 {
 	/**
-	 * @param string  $str
-	 * @param integer $maxlen
-	 *
-	 * @return string
-	 */
-	public static function wordwrap($str, $maxlen = 78)
-	{
-		if (strlen($str) > $maxlen) {
-			$lines = explode("\r\n", $str);
-			foreach ($lines as &$line) {
-				$line = wordwrap($line, $maxlen, "\r\n");
-			}
-			$str = implode("\r\n", $lines);
-		}
-
-		return $str;
-	}
-
-	/**
 	 * @param string $filename
 	 *
 	 * @return string
