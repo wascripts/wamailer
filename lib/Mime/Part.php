@@ -127,25 +127,23 @@ class Part
 		if ($encoding = $this->headers->get('Content-Transfer-Encoding')) {
 			$encoding = strtolower($encoding->value);
 		}
-
-		// RFC 2045#6.4
-		// Le type multipart est restreint aux codages 7bit, 8bit et binary,
-		// cela pour éviter que des données soient codées plusieurs fois.
-		$encoding_list = array('7bit', '8bit', 'binary');
-
-		if (!$this->isMultiPart()) {
-			$encoding_list[] = 'base64';
-			$encoding_list[] = 'quoted-printable';
-		}
-
-		if (!in_array($encoding, $encoding_list)) {
-			$this->headers->remove('Content-Transfer-Encoding');
+		else {
 			$encoding = '7bit';
 		}
 
 		$body = $this->body;
 
 		if ($this->isMultiPart()) {
+			/**
+			 * Le type multipart est restreint aux codages 7bit, 8bit et binary,
+			 * cela pour éviter que des données soient codées plusieurs fois.
+			 *
+			 * @see RFC 2045#6.4
+			 */
+			if (!in_array($encoding, array('7bit', '8bit', 'binary'))) {
+				$this->headers->remove('Content-Transfer-Encoding');
+			}
+
 			$this->boundary = '--=_Part_' . md5(microtime().mt_rand());
 			$this->headers->get('Content-Type')->param('boundary', $this->boundary);
 
@@ -163,58 +161,73 @@ class Part
 		}
 		else {
 			/**
-			 * Chaque ligne ne DOIT PAS faire plus de 998 caractères.
-			 * Si c’est le cas, on passe sur un codage quoted-printable pour
-			 * des données lisibles, sinon sur du base64.
+			 * On normalise les fins de ligne pour les codages concernés.
 			 *
-			 * @see RFC 2045#2.7, 2045#2.8, 2822#2.1.1
+			 * Le codage 'quoted-printable' est inclus dans la liste car
+			 * quoted_printable_encode() code également les caractères <CR>
+			 * et <LF> s’ils ne font pas partie d’une paire <CR><LF>.
 			 */
-			if ($encoding != 'quoted-printable' && $encoding != 'base64' &&
-				preg_match('/^.{998}[^\r\n]/m', $body)
-			) {
-				$encoding = ($encoding == 'binary') ? 'base64' : 'quoted-printable';
-				$this->headers->set('Content-Transfer-Encoding', $encoding);
+			if (in_array($encoding, array('7bit', '8bit', 'quoted-printable'))) {
+				$body = preg_replace("/\r\n?|\n/", "\r\n", $body);
 			}
 
-			switch ($encoding) {
-				case 'quoted-printable':
-					/**
-					 * Encodage en chaîne à guillemets.
-					 *
-					 * quoted_printable_encode() encode également les caractères
-					 * <CR> et <LF> s’ils ne font pas partie d’une paire <CR><LF>.
-					 * On normalise les fins de ligne pour éviter ça et garantir
-					 * un texte un minimum lisible en l’absence de décodage.
-					 *
-					 * @see RFC 2045#6.7
-					 */
-					$body = preg_replace("/\r\n?|\n/", "\r\n", $body);
-					$body = quoted_printable_encode($body);
-					break;
-				case 'base64':
-					/**
-					 * Encodage en base64
-					 *
-					 * @see RFC 2045#6.8
-					 */
-					$body = rtrim(chunk_split(base64_encode($body)));
-					break;
-				case '7bit':
-				case '8bit':
-					$body = preg_replace("/\r\n?|\n/", "\r\n", $body);
+			if (in_array($encoding, array('7bit', '8bit', 'binary'))) {
+				$oldbody = $body;
 
+				if ($encoding != 'binary' && $this->wraptext) {
 					/**
-					 * Limitation sur les longueurs des lignes de texte.
-					 * La limite basse est de 78 caractères par ligne.
-					 * La limite haute de 998 caractères est déjà traitée par
-					 * le bloc de code plus haut.
+					 * Limitation recommandée de 78 caractères par ligne.
+					 * La limite stricte de 998 caractères est traité par
+					 * le bloc de code plus bas.
 					 *
 					 * @see RFC 2822#2.1.1
 					 */
-					if ($this->wraptext) {
-						$body = wordwrap($body, 78, "\r\n");
-					}
-					break;
+					$body = wordwrap($body, 78, "\r\n");
+				}
+
+				/**
+				 * Chaque ligne ne DOIT PAS faire plus de 998 caractères.
+				 * Si c’est le cas, on passe sur un codage quoted-printable pour
+				 * des données lisibles, sinon sur du base64.
+				 *
+				 * @see RFC 2045#2.7, 2045#2.8, 2822#2.1.1
+				 */
+				if (preg_match('/^.{998}[^\r\n]/m', $body)) {
+					$encoding = ($encoding == 'binary') ? 'base64' : 'quoted-printable';
+					$body = $oldbody;
+				}
+
+				unset($oldbody);
+			}
+
+			/**
+			 * On redéfinit l’en-tête de codage des données car le codage a pu
+			 * être changé pour respecter les limitations de ligne imposées
+			 * par la RFC 2045 (voir bloc de code précédent).
+			 *
+			 * 7bit est le 'codage' par défaut. Pas besoin de le préciser dans
+			 * les en-têtes.
+			 * @see RFC 2045#6.1
+			 */
+			if ($encoding != '7bit') {
+				$this->headers->set('Content-Transfer-Encoding', $encoding);
+			}
+
+			if ($encoding == 'quoted-printable') {
+				/**
+				 * Encodage en chaîne à guillemets.
+				 *
+				 * @see RFC 2045#6.7
+				 */
+				$body = quoted_printable_encode($body);
+			}
+			else if ($encoding == 'base64') {
+				/**
+				 * Encodage en base64
+				 *
+				 * @see RFC 2045#6.8
+				 */
+				$body = rtrim(chunk_split(base64_encode($body)));
 			}
 		}
 
