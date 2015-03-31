@@ -46,14 +46,16 @@ class SmtpClient
 	private $port       = 25;
 
 	/**
-	 * Nom d'utilisateur pour l’authentification
+	 * Nom d'utilisateur pour l’authentification.
+	 * Les éventuels caractères non ASCII doivent être codés en UTF-8.
 	 *
 	 * @var string
 	 */
 	private $username   = '';
 
 	/**
-	 * Mot de passe pour l’authentification
+	 * Mot de passe pour l’authentification.
+	 * Les éventuels caractères non ASCII doivent être codés en UTF-8.
 	 *
 	 * @var string
 	 */
@@ -141,8 +143,9 @@ class SmtpClient
 
 		/**
 		 * Liste des méthodes d'authentification utilisables.
-		 * Utile si on veut forcer l'utilisation d'une ou plusieurs méthodes au choix.
-		 * Les méthodes supportées par la classe sont CRAM-MD5, LOGIN et PLAIN.
+		 * Utile si on veut restreindre la liste des méthodes utilisables ou
+		 * bien changer l’ordre de préférence.
+		 * Les méthodes supportées par la classe sont CRAM-MD5, PLAIN et LOGIN.
 		 *
 		 * @var string
 		 */
@@ -315,6 +318,10 @@ class SmtpClient
 
 			$this->put('STARTTLS');
 			if (!$this->checkResponse(220)) {
+				throw new Exception(sprintf(
+					"SMTP server returned an error after STARTTLS command (%s)",
+					$this->responseData
+				));
 				return false;
 			}
 
@@ -363,7 +370,7 @@ class SmtpClient
 		$data .= "\r\n";
 		$this->log(sprintf('C: %s', $data));
 
-		stream_set_timeout($this->socket, ceil($this->iotimeout / 2));
+		stream_set_timeout($this->socket, (integer) ceil($this->iotimeout / 2));
 
 		while ($data) {
 			$bw = fwrite($this->socket, $data);
@@ -436,7 +443,7 @@ class SmtpClient
 				$timeout *= 2;
 			}
 
-			stream_set_timeout($this->socket, ceil($timeout));
+			stream_set_timeout($this->socket, (integer) ceil($timeout));
 
 			do {
 				$data = fgets($this->socket);
@@ -547,7 +554,10 @@ class SmtpClient
 
 	/**
 	 * Authentification auprès du serveur.
-	 * Les méthodes CRAM-MD5, LOGIN et PLAIN sont supportées.
+	 * Les méthodes CRAM-MD5, PLAIN et LOGIN sont supportées.
+	 *
+	 * À noter que la méthode LOGIN a été marquée "OBSOLETE" par l’IANA.
+	 * @see http://www.iana.org/assignments/sasl-mechanisms/sasl-mechanisms.xhtml
 	 *
 	 * @param string $username
 	 * @param string $passwd
@@ -556,12 +566,16 @@ class SmtpClient
 	 */
 	public function authenticate($username, $passwd)
 	{
+		if (strpos($username.$passwd, "\x00") !== false) {
+			throw new Exception("The null byte is not allowed in the username or password.");
+		}
+
 		if (!($available_methods = $this->hasSupport('AUTH'))) {
 			throw new Exception("SMTP server doesn't support authentication");
 		}
 
 		$available_methods = explode(' ', $available_methods);
-		$supported_methods = array('CRAM-MD5','LOGIN','PLAIN');
+		$supported_methods = array('CRAM-MD5','PLAIN','LOGIN');
 
 		if (!empty($this->opts['auth_methods'])) {
 			$force_methods = explode(' ', $this->opts['auth_methods']);
@@ -595,6 +609,12 @@ class SmtpClient
 						return false;
 					}
 					break;
+				case 'PLAIN':
+					$this->put(base64_encode("\0$username\0$passwd"));
+					if (!$this->checkResponse(235)) {
+						return false;
+					}
+					break;
 				case 'LOGIN':
 					$this->put(base64_encode($username));
 					if (!$this->checkResponse(334)) {
@@ -602,12 +622,6 @@ class SmtpClient
 					}
 
 					$this->put(base64_encode($passwd));
-					if (!$this->checkResponse(235)) {
-						return false;
-					}
-					break;
-				case 'PLAIN':
-					$this->put(base64_encode("\0$username\0$passwd"));
 					if (!$this->checkResponse(235)) {
 						return false;
 					}
@@ -778,6 +792,8 @@ class SmtpClient
 		//
 		if (is_resource($this->socket)) {
 			$this->put('QUIT');
+			// Inutile, mais autant quitter proprement dans les règles.
+			$this->checkResponse(221);
 			fclose($this->socket);
 			$this->socket = null;
 		}
