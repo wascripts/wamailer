@@ -42,11 +42,11 @@ class Mime
 			return null;
 		}
 
-		if (extension_loaded('fileinfo')) {
+		if (class_exists('\\finfo')) {
 			$info = new \finfo(FILEINFO_MIME_TYPE);
 			$type = $info->file($filename);
 		}
-		else if (extension_loaded('mime_magic')) {
+		else if (function_exists('mime_content_type')) {
 			$type = mime_content_type($filename);
 		}
 		else if (function_exists('exec')) {

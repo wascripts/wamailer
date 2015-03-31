@@ -269,7 +269,7 @@ class SmtpClient
 		$startTLS = (!$useSSL && $this->opts['starttls']);
 
 		// check de l'extension openssl si besoin
-		if (($useSSL || $startTLS) && !extension_loaded('openssl')) {
+		if (($useSSL || $startTLS) && !in_array('tls', stream_get_transports())) {
 			throw new Exception("Cannot use SSL/TLS because the openssl extension isn't loaded!");
 		}
 
