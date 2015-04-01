@@ -35,7 +35,7 @@ class Email
 	 *
 	 * @var string
 	 */
-	public $charset = 'ISO-8859-1';
+	public $charset = 'UTF-8';
 
 	/**
 	 * Bloc d’en-têtes de l’email (accès en lecture)
