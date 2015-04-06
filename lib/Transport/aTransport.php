@@ -47,7 +47,9 @@ abstract class aTransport implements iTransport
 	/**
 	 * Prépare le message avant son envoi.
 	 * En particulier, on s’assure que les en-têtes 'Date' et 'From',
-	 * obligatoires, sont bien présents (RFC 5322).
+	 * obligatoires, sont bien présents.
+	 *
+	 * @see RFC 5322#3.6 - Field Definitions
 	 *
 	 * @param Email $email
 	 *
@@ -84,7 +86,7 @@ abstract class aTransport implements iTransport
 		 * L’en-tête Return-Path ne devrait être ajouté que par le dernier
 		 * serveur SMTP de la chaîne de transmission et non pas par le MUA.
 		 *
-		 * @see RFC2321#4.4
+		 * @see RFC 5321#4.4 - Trace Information
 		 */
 		$email->headers->remove('Return-Path');
 

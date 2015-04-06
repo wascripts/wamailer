@@ -5,6 +5,11 @@
  * @link      http://phpcodeur.net/wascripts/wamailer/
  * @copyright 2002-2015 Aurélien Maille
  * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
+ *
+ * D’autres source qui m’ont aidées :
+ *
+ * @link https://github.com/php/php-src/blob/master/ext/standard/mail.c
+ * @link https://github.com/php/php-src/blob/master/win32/sendmail.c
  */
 
 namespace Wamailer\Transport;
@@ -163,7 +168,7 @@ class Mail extends aTransport
 
 	/**
 	 * Méthode d’appel pour la gestion des erreurs.
-	 * Activée lors de l'appel à la fonction mail() pour capturer et stocker
+	 * Activée lors de l’appel à la fonction mail() pour capturer et stocker
 	 * un éventuel message d’erreur émis par cette dernière.
 	 *
 	 * @param integer $errno

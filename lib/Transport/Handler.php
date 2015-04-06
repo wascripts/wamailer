@@ -48,7 +48,7 @@ class Handler extends aTransport
 
 	/**
 	 * Définition des options supplémentaires pour ce transport.
-	 * L'option 'handler' est traitée à part pour définir le gestionnaire d’envoi.
+	 * L’option 'handler' est traitée à part pour définir le gestionnaire d’envoi.
 	 *
 	 * @param array $opts
 	 *

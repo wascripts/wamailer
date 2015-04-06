@@ -17,7 +17,7 @@ interface iTransport
 	public function __construct(array $opts = array());
 
 	/**
-	 * Options supplémentaires.
+	 * Définition des options supplémentaires pour ce transport.
 	 *
 	 * @param array $opts
 	 *

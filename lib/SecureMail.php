@@ -9,7 +9,7 @@
  * @see RFC 1847 - Security Multiparts for MIME: Multipart/Signed and Multipart/Encrypted
  * @see RFC 3156 - MIME Security with OpenPGP
  *
- * Les sources qui m’ont bien aidées :
+ * D’autres source qui m’ont aidées :
  *
  * @link https://www.gnupg.org/documentation/index.html
  * @link http://www.kfwebs.net/articles/article/15/PHP-Sendmail-classes
@@ -55,7 +55,7 @@ class SecureMail extends Email
 	 *
 	 * @param string $secretkey  Identifiant de la clé ou le nom ou adresse
 	 *                           email correspondant à la clé voulue
-	 * @param string $passphrase passphrase pour dévérouiller la clé
+	 * @param string $passphrase passphrase pour déverouiller la clé
 	 */
 	public function sign($secretkey = null, $passphrase = null)
 	{
@@ -115,6 +115,7 @@ class SecureMail extends Email
 	 * Surcharge la méthode __toString() de la classe parente.
 	 * Signe et/ou chiffre l’email résultant à l’aide du programme GnuPG.
 	 *
+	 * @throws Exception
 	 * @return string
 	 */
 	public function __toString()

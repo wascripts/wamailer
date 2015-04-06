@@ -5,6 +5,18 @@
  * @link      http://phpcodeur.net/wascripts/wamailer/
  * @copyright 2002-2015 Aurélien Maille
  * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
+ *
+ * @see RFC 5322 - Internet Message Format
+ * @see RFC 2045 - Multipurpose Internet Mail Extensions (MIME) Part One: Format of Internet Message Bodies
+ * @see RFC 2046 - Multipurpose Internet Mail Extensions (MIME) Part Two: Media Types
+ * @see RFC 2047 - Multipurpose Internet Mail Extensions (MIME) Part Three: Message Header Extensions for Non-ASCII Text
+ * @see RFC 2049 - Multipurpose Internet Mail Extensions (MIME) Part Five: Conformance Criteria and Examples
+ * @see RFC 2231 - MIME Parameter Value and Encoded Word Extensions: Character Sets, Languages, and Continuations
+ * @see RFC 4021 - Registration of Mail and MIME Header Fields
+ * @see RFC 2392 - Content-ID and Message-ID Uniform Resource Locators
+ * @see RFC 2183 - Communicating Presentation Information in Internet Messages: The Content-Disposition Header Field
+ * @see RFC 2387 - The MIME Multipart/Related Content-type
+ * @see RFC 2557 - MIME Encapsulation of Aggregate Documents, such as HTML (MHTML)
  */
 
 namespace Wamailer;
@@ -76,7 +88,7 @@ class Email
 	protected $message_txt = '';
 
 	/**
-	 * Nom de l'hôte.
+	 * Nom de l’hôte.
 	 * Utilisé dans l’identifiant du message et dans ceux des fichiers joints.
 	 *
 	 * @var string
@@ -120,6 +132,7 @@ class Email
 	 * @param string  $filename
 	 * @param boolean $fullParse
 	 *
+	 * @throws Exception
 	 * @return mixed
 	 */
 	public function load($filename, $fullParse = false)
@@ -195,6 +208,8 @@ class Email
 	 * Sauvegarde l’email dans un fichier
 	 *
 	 * @param string $filename
+	 *
+	 * @throws Exception
 	 */
 	public function save($filename)
 	{
@@ -411,7 +426,7 @@ class Email
 	}
 
 	/**
-	 * Supprime la partie texte de l'email
+	 * Supprime la partie texte de l’email
 	 */
 	public function removeTextBody()
 	{
@@ -441,7 +456,7 @@ class Email
 	}
 
 	/**
-	 * Supprime la partie HTML de l'email
+	 * Supprime la partie HTML de l’email
 	 */
 	public function removeHTMLBody()
 	{
@@ -457,6 +472,7 @@ class Email
 	 * @param string $type        Type MIME du fichier
 	 * @param string $disposition Disposition
 	 *
+	 * @throws Exception
 	 * @return Mime\Part
 	 */
 	public function attach($filename, $name = '', $type = '', $disposition = '')
@@ -508,7 +524,7 @@ class Email
 	}
 
 	/**
-	 * Supprime les fichiers joints à l'email
+	 * Supprime les fichiers joints à l’email
 	 */
 	public function removeAttachments()
 	{
@@ -517,7 +533,7 @@ class Email
 	}
 
 	/**
-	 * Retourne l’email sous forme de chaîne formatée prète à l’envoi
+	 * Retourne l’email sous forme de chaîne formatée.
 	 *
 	 * @return string
 	 */
@@ -607,14 +623,16 @@ class Email
 			$rootPart = $mixedPart;
 		}
 
-		//
-		// Le corps d’un email est optionnel (cf. RFC 2822#3.5)
-		//
+		/**
+		 * Le corps d’un email est optionnel.
+		 *
+		 * @see RFC 5322#3.5 - Overall Message Syntax
+		 */
 		if (!is_null($rootPart)) {
 			//
 			// Par convention, un bref message informatif est ajouté aux emails
 			// composés de plusieurs sous-parties, au cas où le client mail
-			// ne supporterait pas ceux-ci…
+			// ne supporterait pas ceux-ci...
 			//
 			if ($rootPart->isMultiPart()) {
 				$rootPart->body = "This is a multi-part message in MIME format.";
@@ -626,6 +644,14 @@ class Email
 		return $this->headers_txt . $this->message_txt;
 	}
 
+	/**
+	 * Lecture des propriétés non publiques autorisées.
+	 *
+	 * @param string $name Nom de la propriété
+	 *
+	 * @throws Exception
+	 * @return mixed
+	 */
 	public function __get($name)
 	{
 		switch ($name) {
@@ -641,6 +667,9 @@ class Email
 		}
 	}
 
+	/**
+	 * Clonage de l’objet.
+	 */
 	public function __clone()
 	{
 		$this->headers = clone $this->headers;

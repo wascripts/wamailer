@@ -11,11 +11,10 @@
  * @see RFC 3207 - Secure SMTP over Transport Layer Security
  * @see RFC 2920 - SMTP Service Extension for Command Pipelining
  *
- * Les sources qui m'ont bien aidées :
+ * D’autres source qui m’ont aidées :
  *
- * @link http://abcdrfc.free.fr/ (français)
- * @link http://www.faqs.org/rfcs/ (anglais)
  * @link http://www.commentcamarche.net/internet/smtp.php3
+ * @link http://www.iana.org/assignments/sasl-mechanisms/sasl-mechanisms.xhtml
  */
 
 namespace Wamailer\Transport;
@@ -25,7 +24,7 @@ use Exception;
 class SmtpClient
 {
 	/**
-	 * Nom de l'hôte.
+	 * Nom de l’hôte.
 	 * Utilisé dans les commandes EHLO ou HELO.
 	 * Configurable également via SmtpClient::options().
 	 *
@@ -60,14 +59,14 @@ class SmtpClient
 	 * La RFC 5321 recommande un certain délai (variable selon la commande)
 	 * dans le traitement des commandes lors d’une transaction SMTP.
 	 *
-	 * La plupart des commandes sont suivies d'un délai max. t = iotimeout.
+	 * La plupart des commandes sont suivies d’un délai max. t = iotimeout.
 	 * Pour la commande DATA, on a t = ceil(iotimeout / 2).
-	 * Pour la commande de fin d'envoi du message (.), t = iotimeout * 2.
+	 * Pour la commande de fin d’envoi du message (.), t = iotimeout * 2.
 	 * Lors des envois de données, t = ceil(iotimeout / 2).
 	 *
 	 * Configurable également via SmtpClient::options().
 	 *
-	 * @see RFC 5321#4.5.3.2
+	 * @see RFC 5321#4.5.3.2 - Timeouts
 	 *
 	 * @var integer
 	 */
@@ -122,9 +121,9 @@ class SmtpClient
 		 * Seules certaines commandes sont concernées par ce mécanisme (RSET,
 		 * MAIL FROM, SEND FROM, SOML FROM, SAML FROM, et RCPT TO).
 		 * Les autres commandes imposent forcément une réponse immédiate du
-		 * serveur (ou la fin de la connexion, dans le cas de QUIT).
+		 * serveur.
 		 * Cette option est ignorée si le serveur SMTP ne supporte pas
-		 * l'extension PIPELINING.
+		 * l’extension PIPELINING.
 		 *
 		 * @see RFC 2920
 		 *
@@ -135,7 +134,7 @@ class SmtpClient
 		/**
 		 * Options concernant l’authentification auprès du serveur.
 		 * 'methods':
-		 * Liste des méthodes d'authentification utilisables.
+		 * Liste des méthodes d’authentification utilisables.
 		 * Utile si on veut restreindre la liste des méthodes utilisables ou
 		 * bien changer l’ordre de préférence.
 		 * Les méthodes supportées par la classe sont CRAM-MD5, PLAIN et LOGIN.
@@ -210,7 +209,9 @@ class SmtpClient
 	}
 
 	/**
-	 * Définition des options d'utilisation
+	 * Définition des options d’utilisation.
+	 * Les options 'hostname', 'debug', 'timeout' et 'iotimeout' renvoient
+	 * aux propriétés de classe de même nom.
 	 *
 	 * @param array $opts
 	 *
@@ -236,7 +237,7 @@ class SmtpClient
 	 *
 	 * @param string $server    Nom ou IP du serveur (hostname, proto://hostname, proto://hostname:port)
 	 *                          Si IPv6, bien utiliser la syntaxe à crochets (eg: proto://[::1]:25)
-	 * @param string $username  Nom d'utilisateur pour l’authentification (si nécessaire)
+	 * @param string $username  Nom d’utilisateur pour l’authentification (si nécessaire)
 	 * @param string $secretkey Clé secrète pour l’authentification (si nécessaire)
 	 *
 	 * @throws Exception
@@ -267,7 +268,7 @@ class SmtpClient
 		$useSSL   = ($proto == 'ssl' || $proto == 'tls');
 		$startTLS = (!$useSSL && $this->opts['starttls']);
 
-		// check de l'extension openssl si besoin
+		// check de l’extension openssl si besoin
 		if (($useSSL || $startTLS) && !in_array('tls', stream_get_transports())) {
 			throw new Exception("Cannot use SSL/TLS because the openssl extension is not available!");
 		}
@@ -345,7 +346,7 @@ class SmtpClient
 	}
 
 	/**
-	 * Vérifie l'état de la connexion
+	 * Vérifie l’état de la connexion
 	 *
 	 * @return boolean
 	 */
@@ -355,7 +356,7 @@ class SmtpClient
 	}
 
 	/**
-	 * Envoi d'une commande au serveur
+	 * Envoi d’une commande au serveur
 	 *
 	 * @param string $data
 	 *
@@ -528,11 +529,11 @@ class SmtpClient
 	}
 
 	/**
-	 * Indique si l'extension ciblée est supportée par le serveur SMTP.
-	 * Si l'extension possède des paramètres (par exemple, AUTH donne aussi la
+	 * Indique si l’extension ciblée est supportée par le serveur SMTP.
+	 * Si l’extension possède des paramètres (par exemple, AUTH donne aussi la
 	 * liste des méthodes supportées), ceux-ci sont retournés au lieu de true
 	 *
-	 * @param string $name Nom de l'extension (insensible à la casse)
+	 * @param string $name Nom de l’extension (insensible à la casse)
 	 *
 	 * @return mixed
 	 */
@@ -633,7 +634,7 @@ class SmtpClient
 	/**
 	 * Envoie la commande MAIL FROM
 	 *
-	 * @param string $email  Adresse email de l'expéditeur
+	 * @param string $email  Adresse email de l’expéditeur
 	 * @param string $params Paramètres additionnels
 	 *
 	 * @return boolean
@@ -798,6 +799,14 @@ class SmtpClient
 		}
 	}
 
+	/**
+	 * Lecture des propriétés non publiques autorisées.
+	 *
+	 * @param string $name Nom de la propriété
+	 *
+	 * @throws Exception
+	 * @return mixed
+	 */
 	public function __get($name)
 	{
 		switch ($name) {
@@ -812,6 +821,10 @@ class SmtpClient
 		}
 	}
 
+	/**
+	 * Destructeur de classe.
+	 * On s’assure de fermer proprement la connexion s’il y a lieu.
+	 */
 	public function __destruct()
 	{
 		$this->quit();

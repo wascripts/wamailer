@@ -6,22 +6,17 @@
  * @copyright 2002-2015 Aurélien Maille
  * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
  *
+ * @see RFC 5322 - Internet Message Format
  * @see RFC 2045 - Multipurpose Internet Mail Extensions (MIME) Part One: Format of Internet Message Bodies
  * @see RFC 2046 - Multipurpose Internet Mail Extensions (MIME) Part Two: Media Types
  * @see RFC 2047 - Multipurpose Internet Mail Extensions (MIME) Part Three: Message Header Extensions for Non-ASCII Text
- * @see RFC 4289 - Multipurpose Internet Mail Extensions (MIME) Part Four: Registration Procedures
  * @see RFC 2049 - Multipurpose Internet Mail Extensions (MIME) Part Five: Conformance Criteria and Examples
- * @see RFC 2076 - Common Internet Message Headers
+ * @see RFC 2231 - MIME Parameter Value and Encoded Word Extensions: Character Sets, Languages, and Continuations
+ * @see RFC 4021 - Registration of Mail and MIME Header Fields
  * @see RFC 2392 - Content-ID and Message-ID Uniform Resource Locators
  * @see RFC 2183 - Communicating Presentation Information in Internet Messages: The Content-Disposition Header Field
- * @see RFC 2231 - MIME Parameter Value and Encoded Word Extensions: Character Sets, Languages, and Continuations
- * @see RFC 2822 - Internet Message Format
  * @see RFC 2387 - The MIME Multipart/Related Content-type
- *
- * Les sources qui m’ont bien aidées :
- *
- * @link http://abcdrfc.free.fr/ (français)
- * @link http://www.faqs.org/rfcs/ (anglais)
+ * @see RFC 2557 - MIME Encapsulation of Aggregate Documents, such as HTML (MHTML)
  */
 
 namespace Wamailer\Mime;
@@ -65,11 +60,11 @@ class Part
 	 * est de 78 octets + <CR><LF>.
 	 *
 	 * De plus, si une ligne dépasse 998 octets + <CR><LF>, le codage
-	 * quoted-printable ou base64 (si l'encoding de base est 'binary') est
+	 * quoted-printable ou base64 (si l’encoding de base est 'binary') est
 	 * automatiquement utilisé pour garantir la bonne livraison du message
 	 * par les MTA.
 	 *
-	 * @see RFC 2822#2.1.1
+	 * @see RFC 5322#2.1.1 - Line Length Limits
 	 *
 	 * @var boolean
 	 */
@@ -112,7 +107,7 @@ class Part
 	 */
 	public function isMultiPart()
 	{
-		return count($this->subparts) > 0;
+		return (count($this->subparts) > 0);
 	}
 
 	/**
@@ -138,7 +133,7 @@ class Part
 			 * Le type multipart est restreint aux codages 7bit, 8bit et binary,
 			 * cela pour éviter que des données soient codées plusieurs fois.
 			 *
-			 * @see RFC 2045#6.4
+			 * @see RFC 2045#6.4 - Interpretation and Use
 			 */
 			if (!in_array($encoding, array('7bit', '8bit', 'binary'))) {
 				$this->headers->remove('Content-Transfer-Encoding');
@@ -171,27 +166,22 @@ class Part
 				$body = preg_replace("/\r\n?|\n/", "\r\n", $body);
 			}
 
+			/**
+			 * La limitation de longueur recommandée est de 78 caractères
+			 * par ligne.
+			 * La limite stricte est de 998 caractères. Si celle-ci est
+			 * dépassée, on passe sur un codage quoted-printable pour
+			 * des données lisibles, sinon sur du base64.
+			 *
+			 * @see RFC 5322#2.1.1 - Line Length Limits
+			 */
 			if (in_array($encoding, array('7bit', '8bit', 'binary'))) {
 				$oldbody = $body;
 
 				if ($encoding != 'binary' && $this->wraptext) {
-					/**
-					 * Limitation recommandée de 78 caractères par ligne.
-					 * La limite stricte de 998 caractères est traité par
-					 * le bloc de code plus bas.
-					 *
-					 * @see RFC 2822#2.1.1
-					 */
 					$body = wordwrap($body, 78, "\r\n");
 				}
 
-				/**
-				 * Chaque ligne ne DOIT PAS faire plus de 998 caractères.
-				 * Si c’est le cas, on passe sur un codage quoted-printable pour
-				 * des données lisibles, sinon sur du base64.
-				 *
-				 * @see RFC 2045#2.7, 2045#2.8, 2822#2.1.1
-				 */
 				if (preg_match('/^.{998}[^\r\n]/m', $body)) {
 					$encoding = ($encoding == 'binary') ? 'base64' : 'quoted-printable';
 					$body = $oldbody;
@@ -202,12 +192,13 @@ class Part
 
 			/**
 			 * On redéfinit l’en-tête de codage des données car le codage a pu
-			 * être changé pour respecter les limitations de ligne imposées
-			 * par la RFC 2045 (voir bloc de code précédent).
+			 * être changé pour respecter les limitations de ligne
+			 * (voir bloc de code précédent).
 			 *
 			 * 7bit est le 'codage' par défaut. Pas besoin de le préciser dans
 			 * les en-têtes.
-			 * @see RFC 2045#6.1
+			 *
+			 * @see RFC 2045#6.1 - Content-Transfer-Encoding Syntax
 			 */
 			if ($encoding != '7bit') {
 				$this->headers->set('Content-Transfer-Encoding', $encoding);
@@ -217,7 +208,7 @@ class Part
 				/**
 				 * Encodage en chaîne à guillemets.
 				 *
-				 * @see RFC 2045#6.7
+				 * @see RFC 2045#6.7 - Quoted-Printable Content-Transfer-Encoding
 				 */
 				$body = quoted_printable_encode($body);
 			}
@@ -225,7 +216,7 @@ class Part
 				/**
 				 * Encodage en base64
 				 *
-				 * @see RFC 2045#6.8
+				 * @see RFC 2045#6.8 - Base64 Content-Transfer-Encoding
 				 */
 				$body = rtrim(chunk_split(base64_encode($body)));
 			}
@@ -234,6 +225,12 @@ class Part
 		return $this->headers->__toString() . "\r\n" . $body;
 	}
 
+	/**
+	 * Modification des propriétés non publiques autorisées.
+	 *
+	 * @param string $name  Nom de la propriété
+	 * @param mixed  $value Nouvelle valeur de la propriété
+	 */
 	public function __set($name, $value)
 	{
 		if ($name == 'encoding') {
@@ -241,6 +238,14 @@ class Part
 		}
 	}
 
+	/**
+	 * Lecture des propriétés non publiques autorisées.
+	 *
+	 * @param string $name Nom de la propriété
+	 *
+	 * @throws Exception
+	 * @return mixed
+	 */
 	public function __get($name)
 	{
 		$value = null;
@@ -261,6 +266,9 @@ class Part
 		return $value;
 	}
 
+	/**
+	 * Clonage de l’objet
+	 */
 	public function __clone()
 	{
 		$this->headers = clone $this->headers;

@@ -6,22 +6,17 @@
  * @copyright 2002-2015 Aurélien Maille
  * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
  *
+ * @see RFC 5322 - Internet Message Format
  * @see RFC 2045 - Multipurpose Internet Mail Extensions (MIME) Part One: Format of Internet Message Bodies
  * @see RFC 2046 - Multipurpose Internet Mail Extensions (MIME) Part Two: Media Types
  * @see RFC 2047 - Multipurpose Internet Mail Extensions (MIME) Part Three: Message Header Extensions for Non-ASCII Text
- * @see RFC 4289 - Multipurpose Internet Mail Extensions (MIME) Part Four: Registration Procedures
  * @see RFC 2049 - Multipurpose Internet Mail Extensions (MIME) Part Five: Conformance Criteria and Examples
- * @see RFC 2076 - Common Internet Message Headers
+ * @see RFC 2231 - MIME Parameter Value and Encoded Word Extensions: Character Sets, Languages, and Continuations
+ * @see RFC 4021 - Registration of Mail and MIME Header Fields
  * @see RFC 2392 - Content-ID and Message-ID Uniform Resource Locators
  * @see RFC 2183 - Communicating Presentation Information in Internet Messages: The Content-Disposition Header Field
- * @see RFC 2231 - MIME Parameter Value and Encoded Word Extensions: Character Sets, Languages, and Continuations
- * @see RFC 2822 - Internet Message Format
  * @see RFC 2387 - The MIME Multipart/Related Content-type
- *
- * Les sources qui m’ont bien aidées :
- *
- * @link http://abcdrfc.free.fr/ (français)
- * @link http://www.faqs.org/rfcs/ (anglais)
+ * @see RFC 2557 - MIME Encapsulation of Aggregate Documents, such as HTML (MHTML)
  */
 
 namespace Wamailer\Mime;
@@ -52,9 +47,9 @@ class Header
 	private $params = array();
 
 	/**
-	 * Active/Désactive le pliage des entêtes tel que décrit dans la RFC 2822
+	 * Active/Désactive le pliage des entêtes
 	 *
-	 * @see RFC 2822#2.2.3 Long Header Fields
+	 * @see RFC 5322#2.2.3 - Long Header Fields
 	 *
 	 * @var boolean
 	 */
@@ -89,15 +84,16 @@ class Header
 	 * Le nom de l’en-tête ne doit contenir que des caractères us-ascii imprimables,
 	 * et ne doit pas contenir le caractère deux points (:)
 	 *
-	 * @see RFC 2822#2.2
+	 * @see RFC 5322#2.2 - Header Fields
 	 *
 	 * @param string $name
 	 *
+	 * @throws Exception
 	 * @return string
 	 */
 	public function validName($name)
 	{
-		if (!preg_match('/^[\x21-\x39\x3B-\x7E]+$/', $name)) {
+		if (preg_match('/[^\x21-\x39\x3B-\x7E]/', $name)) {
 			throw new Exception("'$name' is not a valid header name!");
 		}
 
@@ -108,7 +104,7 @@ class Header
 	 * Le contenu de l’en-tête ne doit contenir aucun retour chariot
 	 * ou saut de ligne
 	 *
-	 * @see RFC 2822#2.2
+	 * @see RFC 5322#2.2 - Header Fields
 	 *
 	 * @param string $value
 	 *
@@ -120,20 +116,19 @@ class Header
 	}
 
 	/**
-	 * Vérifie si la chaîne passée en argument est un 'token' tel que défini dans la RFC 2045
+	 * Vérifie si la chaîne passée en argument est un 'token'.
 	 *
-	 * @see RFC 2045#5.1
+	 * @see RFC 2045 - Appendix A -- Collected Grammar
 	 *
 	 * @param string $str
 	 *
-	 * @access public
 	 * @return boolean
 	 */
 	public function isToken($str)
 	{
 		/**
-		 * Tout caractère ASCII est accepté à l’exception des caractères de contrôle, de l’espace
-		 * et des caractères spéciaux listés ci-dessous.
+		 * Tout caractère ASCII est accepté à l’exception des caractères de
+		 * contrôle, de l’espace et des caractères spéciaux listés ci-dessous.
 		 *
 		 * token := 1*<any (US-ASCII) CHAR except SPACE, CTLs, or tspecials>
 		 *
@@ -142,7 +137,7 @@ class Header
 		 *              "/" / "[" / "]" / "?" / "="
 		 */
 
-		return (bool) !preg_match('/[^\x21\x23-\x27\x2A\x2B\x2D\x2E\x30-\x39\x5E-\x7E]/Si', $str);
+		return !preg_match('/[^\x21\x23-\x27\x2A\x2B\x2D\x2E\x30-\x39\x5E-\x7E]/Si', $str);
 	}
 
 	/**
@@ -187,7 +182,7 @@ class Header
 	 *
 	 * @see RFC 2045
 	 * @see RFC 2047
-	 * @see RFC 2822
+	 * @see RFC 5322
 	 *
 	 * @param string $name    Nom de l’en-tête concerné
 	 * @param string $value   Valeur d’en-tête à encoder
@@ -227,8 +222,7 @@ class Header
 		 * La RFC 2047 recommande d’utiliser pour chaque cas l’encodage produisant
 		 * le résultat le plus court.
 		 *
-		 * @see RFC 2045#6.8
-		 * @see RFC 2047#4
+		 * @see RFC 2047#4 - Encodings
 		 */
 		$q = preg_match_all("/[$charlist]/", $value, $matches);
 
@@ -244,8 +238,8 @@ class Header
 		);
 
 		/**
-		 * Si on travaille en Quoted Printable, on fait l'encodage *avant* de
-		 * travailler sur la chaîne car c'est beaucoup plus simple ensuite pour
+		 * Si on travaille en Quoted Printable, on fait l’encodage *avant* de
+		 * travailler sur la chaîne car c’est beaucoup plus simple ensuite pour
 		 * obtenir la bonne longueur.
 		 * Si on travaille en base64, le codage se fait à la fin de chaque
 		 * itération dans la boucle de traitement.
@@ -269,10 +263,10 @@ class Header
 
 			if ($encoding == 'B') {
 				/**
-				 * La longueur de l'encoded-text' doit être un multiple de 4
+				 * La longueur du 'encoded-text' doit être un multiple de 4
 				 * pour ne pas casser l’encodage base64
 				 *
-				 * @see RFC 2047#5
+				 * @see RFC 2047#5 - Use of encoded-words in message headers
 				 */
 				$chunk_len -= ($chunk_len % 4);
 				$chunk_len  = (integer) floor(($chunk_len/4)*3);
@@ -305,17 +299,17 @@ class Header
 				 * On vérifie alors qu’il y bien $m octets qui suivent (le cas échéant).
 				 * Si ce n’est pas le cas, on réduit la longueur du tronçon.
 				 *
-				 * @see RFC 2047#5
+				 * @see RFC 2047#5 - Use of encoded-words in message headers
 				 *
 				 * Si quoted-printable, on progresse par séquence de 3 (=XX).
-				 * Si base64, le codage n'est pas encore fait, donc on progresse
+				 * Si base64, le codage n’est pas encore fait, donc on progresse
 				 * octet par octet.
 				 */
 
 				$v = ($encoding == 'Q') ? 3 : 1;
 				for ($i = $chunk_len, $c = $v; $i > 0; $i -= $v, $c += $v) {
 					$char = substr($chunk, ($i - $v), $v);
-					$d = ($encoding == 'Q') ? $d = hexdec(ltrim($char, '=')) : ord($char);
+					$d = ($encoding == 'Q') ? hexdec(ltrim($char, '=')) : ord($char);
 
 					reset($_utf8test);
 					for ($m = 1; $m <= 6; $m++) {
@@ -365,7 +359,7 @@ class Header
 				 * Syntaxe spécifique pour les valeurs comportant
 				 * des caractères non-ascii.
 				 *
-				 * @see RFC 2231#4
+				 * @see RFC 2231#4 - Parameter Value Character Set and Language Information
 				 */
 				if (preg_match('/[\x80-\xFF]/S', $pValue)) {
 					$pName .= '*';
@@ -388,6 +382,12 @@ class Header
 		return $value;
 	}
 
+	/**
+	 * Modification des propriétés non publiques autorisées.
+	 *
+	 * @param string $name  Nom de la propriété
+	 * @param mixed  $value Nouvelle valeur de la propriété
+	 */
 	public function __set($name, $value)
 	{
 		switch ($name) {
@@ -397,6 +397,14 @@ class Header
 		}
 	}
 
+	/**
+	 * Lecture des propriétés non publiques autorisées.
+	 *
+	 * @param string $name Nom de la propriété
+	 *
+	 * @throws Exception
+	 * @return mixed
+	 */
 	public function __get($name)
 	{
 		switch ($name) {

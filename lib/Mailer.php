@@ -5,11 +5,6 @@
  * @link      http://phpcodeur.net/wascripts/wamailer/
  * @copyright 2002-2015 Aurélien Maille
  * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
- *
- * Les sources qui m’ont bien aidées :
- *
- * @link https://github.com/php/php-src/blob/master/ext/standard/mail.c
- * @link https://github.com/php/php-src/blob/master/win32/sendmail.c
  */
 
 namespace Wamailer;
@@ -96,11 +91,11 @@ abstract class Mailer
 	 * @param mixed $transport Différentes valeurs sont acceptées :
 	 *  - Nom d'un transport enregistré dans le tableau self::$transports
 	 *  - Nom d'une classe existante et implémentant l’interface iTransport
-	 *  - Toute valeur dite 'callable' utilisable avec call_user_func().
+	 *  - Toute valeur de type callable, utilisable avec call_user_func().
 	 *    Dans ce cas, un objet implémentant l’interface iTransport doit être
 	 *    renvoyé en sortie.
 	 *  - Un objet implémentant l’interface iTransport
-	 * @param array $opts Tableau d’options pour le transport concerné
+	 * @param array $opts      Tableau d’options pour le transport concerné
 	 *
 	 * @throws Exception
 	 * @return iTransport
