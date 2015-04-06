@@ -18,12 +18,21 @@
  * @link http://www.commentcamarche.net/internet/smtp.php3
  */
 
-namespace Wamailer;
+namespace Wamailer\Transport;
 
 use Exception;
 
 class SmtpClient
 {
+	/**
+	 * Nom de l'hôte.
+	 * Utilisé dans les commandes EHLO ou HELO.
+	 * Configurable également via SmtpClient::options().
+	 *
+	 * @var string
+	 */
+	public $hostname = '';
+
 	/**
 	 * Socket de connexion au serveur SMTP
 	 *
@@ -32,44 +41,22 @@ class SmtpClient
 	private $socket;
 
 	/**
-	 * Nom ou IP du serveur smtp à contacter
+	 * Nom ou IP du serveur SMTP à contacter, ainsi que le port.
 	 *
 	 * @var string
 	 */
-	private $host       = '';
+	private $server     = 'localhost:25';
 
 	/**
-	 * Port d'accès
-	 *
-	 * @var integer
-	 */
-	private $port       = 25;
-
-	/**
-	 * Nom d'utilisateur pour l’authentification.
-	 * Les éventuels caractères non ASCII doivent être codés en UTF-8.
-	 *
-	 * @var string
-	 */
-	private $username   = '';
-
-	/**
-	 * Mot de passe pour l’authentification.
-	 * Les éventuels caractères non ASCII doivent être codés en UTF-8.
-	 *
-	 * @var string
-	 */
-	private $passwd     = '';
-
-	/**
-	 * Timeout de connexion
+	 * Timeout de connexion.
+	 * Configurable également via SmtpClient::options().
 	 *
 	 * @var integer
 	 */
 	public  $timeout    = 30;
 
 	/**
-	 * Délai d’attent lors d’envoi/réception de données.
+	 * Délai d’attente lors d’envoi/réception de données.
 	 * La RFC 5321 recommande un certain délai (variable selon la commande)
 	 * dans le traitement des commandes lors d’une transaction SMTP.
 	 *
@@ -77,6 +64,8 @@ class SmtpClient
 	 * Pour la commande DATA, on a t = ceil(iotimeout / 2).
 	 * Pour la commande de fin d'envoi du message (.), t = iotimeout * 2.
 	 * Lors des envois de données, t = ceil(iotimeout / 2).
+	 *
+	 * Configurable également via SmtpClient::options().
 	 *
 	 * @see RFC 5321#4.5.3.2
 	 *
@@ -88,6 +77,7 @@ class SmtpClient
 	 * Débogage.
 	 * true pour afficher sur la sortie standard ou bien toute valeur utilisable
 	 * avec call_user_func()
+	 * Configurable également via SmtpClient::options().
 	 *
 	 * @var boolean|callable
 	 */
@@ -95,7 +85,8 @@ class SmtpClient
 
 	/**
 	 * Options diverses.
-	 * Voir méthode SmtpClient::options()
+	 * Les propriétés 'hostname', 'timeout', 'iotimeout' et 'debug' peuvent être
+	 * configurées également au travers de la méthode SmtpClient::options()
 	 *
 	 * @var array
 	 */
@@ -142,6 +133,8 @@ class SmtpClient
 		'pipelining' => false,
 
 		/**
+		 * Options concernant l’authentification auprès du serveur.
+		 * 'methods':
 		 * Liste des méthodes d'authentification utilisables.
 		 * Utile si on veut restreindre la liste des méthodes utilisables ou
 		 * bien changer l’ordre de préférence.
@@ -149,7 +142,9 @@ class SmtpClient
 		 *
 		 * @var string
 		 */
-		'auth_methods' => ''
+		'auth' => array(
+			'methods' => ''
+		)
 	);
 
 	/**
@@ -160,15 +155,6 @@ class SmtpClient
 	 * @var array
 	 */
 	private $extensions = array();
-
-	/**
-	 * Si la méthode from() n'a pas été appelée, la méthode to() le fait
-	 * automatiquement en utilisant comme valeur l'option PHP 'sendmail_from'
-	 * Réinitialisé à false après chaque transaction.
-	 *
-	 * @var boolean
-	 */
-	private $fromCalled = false;
 
 	/**
 	 * Dernier code de réponse retourné par le serveur (accès en lecture).
@@ -199,18 +185,18 @@ class SmtpClient
 	private $pipeline = array();
 
 	/**
-	 * Nom de l'hôte.
-	 * Utilisé dans les commandes EHLO ou HELO.
-	 *
-	 * @var string
+	 * @param array $opts
 	 */
-	public $hostname = '';
-
-	public function __construct()
+	public function __construct(array $opts = array())
 	{
-		if (empty($this->host)) {
-			$this->host = ini_get('SMTP');
-			$this->port = ini_get('smtp_port');
+		if (!$this->server) {
+			$this->server = ini_get('SMTP');
+			$port = ini_get('smtp_port');
+			$this->server .= ':'.(($port > 0) ? $port : 25);
+		}
+
+		if (!strpos($this->server, '://')) {
+			$this->server = 'tcp://'.$this->server;
 		}
 
 		if (!$this->hostname) {
@@ -219,58 +205,71 @@ class SmtpClient
 					? $_SERVER['SERVER_NAME'] : 'localhost';
 			}
 		}
+
+		$this->options($opts);
 	}
 
 	/**
 	 * Définition des options d'utilisation
 	 *
 	 * @param array $opts
+	 *
+	 * @return array
 	 */
-	public function options($opts)
+	public function options(array $opts = array())
 	{
-		if (is_array($opts)) {
-			// Configuration alternative
-			foreach (array('debug','timeout','iotimeout') as $name) {
-				if (!empty($opts[$name])) {
-					$this->{$name} = $opts[$name];
-					unset($opts[$name]);
-				}
+		// Configuration alternative
+		foreach (array('hostname','debug','timeout','iotimeout') as $name) {
+			if (!empty($opts[$name])) {
+				$this->{$name} = $opts[$name];
+				unset($opts[$name]);
 			}
-
-			$this->opts = array_replace_recursive($this->opts, $opts);
 		}
+
+		$this->opts = array_replace_recursive($this->opts, $opts);
+
+		return $this->opts;
 	}
 
 	/**
 	 * Établit la connexion au serveur SMTP
 	 *
-	 * @param string  $host     Nom ou IP du serveur
-	 * @param integer $port     Port d'accès
-	 * @param string  $username Nom d'utilisateur pour l’authentification (si nécessaire)
-	 * @param string  $passwd   Mot de passe pour l’authentification (si nécessaire)
+	 * @param string $server    Nom ou IP du serveur (hostname, proto://hostname, proto://hostname:port)
+	 *                          Si IPv6, bien utiliser la syntaxe à crochets (eg: proto://[::1]:25)
+	 * @param string $username  Nom d'utilisateur pour l’authentification (si nécessaire)
+	 * @param string $secretkey Clé secrète pour l’authentification (si nécessaire)
 	 *
+	 * @throws Exception
 	 * @return boolean
 	 */
-	public function connect($host = null, $port = null, $username = null, $passwd = null)
+	public function connect($server = null, $username = null, $secretkey = null)
 	{
-		foreach (array('host', 'port', 'username', 'passwd') as $varname) {
-			if (empty($$varname)) {
-				$$varname = $this->{$varname};
-			}
-		}
-
+		// Reset des données relatives à l’éventuelle connexion précédente
 		$this->responseCode = null;
 		$this->responseData = null;
-		$this->fromCalled   = false;
 		$this->lastCommand  = null;
 		$this->pipeline     = array();
 
-		$useSSL   = preg_match('#^(ssl|tls)(v[.0-9]+)?://#', $host);
+		if (!$server) {
+			$server = $this->server;
+		}
+
+		if (!strpos($server, '://')) {
+			$server = 'tcp://'.$server;
+		}
+
+		$port = parse_url($server, PHP_URL_PORT);
+		if (!$port) {
+			$server .= ':'.parse_url($this->server, PHP_URL_PORT);
+		}
+
+		$proto = substr(parse_url($server, PHP_URL_SCHEME), 0, 3);
+		$useSSL   = ($proto == 'ssl' || $proto == 'tls');
 		$startTLS = (!$useSSL && $this->opts['starttls']);
 
 		// check de l'extension openssl si besoin
 		if (($useSSL || $startTLS) && !in_array('tls', stream_get_transports())) {
-			throw new Exception("Cannot use SSL/TLS because the openssl extension isn't loaded!");
+			throw new Exception("Cannot use SSL/TLS because the openssl extension is not available!");
 		}
 
 		//
@@ -281,7 +280,7 @@ class SmtpClient
 		$context = stream_context_create($context_opts, $context_params);
 
 		$this->socket = stream_socket_client(
-			sprintf('%s:%d', $host, $port),
+			$server,
 			$errno,
 			$errstr,
 			$this->timeout,
@@ -338,8 +337,8 @@ class SmtpClient
 			$this->hello($this->hostname);
 		}
 
-		if (!empty($username) && !empty($passwd)) {
-			return $this->authenticate($username, $passwd);
+		if ($username && $secretkey) {
+			return $this->authenticate($username, $secretkey);
 		}
 
 		return true;
@@ -359,6 +358,8 @@ class SmtpClient
 	 * Envoi d'une commande au serveur
 	 *
 	 * @param string $data
+	 *
+	 * @throws Exception
 	 */
 	public function put($data)
 	{
@@ -390,27 +391,21 @@ class SmtpClient
 	}
 
 	/**
-	 * Vérifie la réponse renvoyée par le serveur
+	 * Vérifie la réponse renvoyée par le serveur.
 	 *
+	 * @param mixed $codes Codes retour acceptés. Peut être un code seul ou un tableau.
+	 *
+	 * @throws Exception
 	 * @return boolean
 	 */
-	public function checkResponse()
+	public function checkResponse($codes)
 	{
 		if (!$this->isConnected()) {
 			throw new Exception("The connection was closed!");
 		}
 
-		$codes = array();
-		$numargs = func_num_args();
-
-		for ($i = 0; $i < $numargs; $i++) {
-			$arg = func_get_arg($i);
-			if (is_array($arg)) {
-				$codes = array_merge($codes, $arg);
-			}
-			else {
-				$codes[] = $arg;
-			}
+		if (!is_array($codes)) {
+			$codes = array($codes);
 		}
 
 		if (count($codes) == 0) {
@@ -559,15 +554,16 @@ class SmtpClient
 	 * À noter que la méthode LOGIN a été marquée "OBSOLETE" par l’IANA.
 	 * @see http://www.iana.org/assignments/sasl-mechanisms/sasl-mechanisms.xhtml
 	 *
-	 * @param string $username
-	 * @param string $passwd
+	 * @param string $username  Les caractères non ASCII doivent être codés en UTF-8.
+	 * @param string $secretkey Les caractères non ASCII doivent être codés en UTF-8.
 	 *
+	 * @throws Exception
 	 * @return boolean
 	 */
-	public function authenticate($username, $passwd)
+	public function authenticate($username, $secretkey)
 	{
-		if (strpos($username.$passwd, "\x00") !== false) {
-			throw new Exception("The null byte is not allowed in the username or password.");
+		if (strpos($username.$secretkey, "\x00") !== false) {
+			throw new Exception("The null byte is not allowed in the username or secretkey.");
 		}
 
 		if (!($available_methods = $this->hasSupport('AUTH'))) {
@@ -577,8 +573,8 @@ class SmtpClient
 		$available_methods = explode(' ', $available_methods);
 		$supported_methods = array('CRAM-MD5','PLAIN','LOGIN');
 
-		if (!empty($this->opts['auth_methods'])) {
-			$force_methods = explode(' ', $this->opts['auth_methods']);
+		if (!empty($this->opts['auth']['methods'])) {
+			$force_methods = explode(' ', $this->opts['auth']['methods']);
 			$supported_methods = array_intersect($force_methods, $supported_methods);
 		}
 
@@ -603,14 +599,14 @@ class SmtpClient
 
 					$this->put(base64_encode(sprintf('%s %s',
 						$username,
-						hash_hmac('md5', $challenge, $passwd)
+						hash_hmac('md5', $challenge, $secretkey)
 					)));
 					if (!$this->checkResponse(235)) {
 						return false;
 					}
 					break;
 				case 'PLAIN':
-					$this->put(base64_encode("\0$username\0$passwd"));
+					$this->put(base64_encode("\0$username\0$secretkey"));
 					if (!$this->checkResponse(235)) {
 						return false;
 					}
@@ -621,7 +617,7 @@ class SmtpClient
 						return false;
 					}
 
-					$this->put(base64_encode($passwd));
+					$this->put(base64_encode($secretkey));
 					if (!$this->checkResponse(235)) {
 						return false;
 					}
@@ -642,13 +638,8 @@ class SmtpClient
 	 *
 	 * @return boolean
 	 */
-	public function from($email = null, $params = null)
+	public function from($email, $params = null)
 	{
-		$this->fromCalled = true;
-		if (is_null($email)) {
-			$email = ini_get('sendmail_from');
-		}
-
 		//
 		// S: 250
 		// E: 552, 451, 452, 550, 553, 503, 455, 555
@@ -662,8 +653,6 @@ class SmtpClient
 	/**
 	 * Envoie la commande RCPT TO
 	 * Cette commande doit être invoquée autant de fois qu’il y a de destinataire.
-	 * Si la méthode from() n’a pas été appelée auparavant, elle est appelée
-	 * automatiquement.
 	 *
 	 * @param string $email  Adresse email du destinataire
 	 * @param string $params Paramètres additionnels
@@ -672,10 +661,6 @@ class SmtpClient
 	 */
 	public function to($email, $params = null)
 	{
-		if (!$this->fromCalled) {
-			$this->from();
-		}
-
 		//
 		// S: 250, 251
 		// E: 550, 551, 552, 553, 450, 451, 452, 503, 455, 555
@@ -727,8 +712,6 @@ class SmtpClient
 		if (!$this->checkResponse(250)) {
 			return false;
 		}
-
-		$this->fromCalled = false;
 
 		return true;
 	}

@@ -629,6 +629,7 @@ class Email
 	public function __get($name)
 	{
 		switch ($name) {
+			case 'sender':
 			case 'headers':
 			case 'textPart':
 			case 'htmlPart':

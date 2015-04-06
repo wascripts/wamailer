@@ -33,7 +33,8 @@ Fonctionnalités
 Utilisation
 -------------
 
-Incluez simplement la classe dans vos scripts. Exemple d’utilisation :
+Incluez simplement la classe dans vos scripts.
+Exemple d’utilisation :
 
     // Inclusion de l'autoloader de Wamailer.
     // Inutile dans le cas où wamailer est géré par un gestionnaire de
@@ -44,10 +45,38 @@ Incluez simplement la classe dans vos scripts. Exemple d’utilisation :
     $email->setFrom('me@domain.tld', 'MyName');
     $email->addRecipient('other@domain.tld');
     $email->setSubject('This is the subject');
-    $email->setTextBody('This is the body of mail');
+    $email->setTextBody('This is the message');
 
     try {
         \Wamailer\Mailer::send($email);
+    }
+    catch (Exception $e) {
+        ...
+    }
+
+Deuxième exemple avec un email texte et html et en utilisant un serveur SMTP :
+
+    use Wamailer\Email;
+    use Wamailer\Mailer;
+
+    require 'wamailer.php';
+
+    $email = new Email();
+    $email->setFrom('me@domain.tld', 'MyName');
+    $email->addRecipient('other@domain.tld', 'OtherName');
+    $email->setSubject('This is the subject');
+    $email->setTextBody('This is the message in plain text format');
+    $email->setHTMLBody('This is the <strong>message</strong> in HTML format.');
+
+    $opts = [
+        'server'   => 'mail.mydomain.tld:587',
+        'starttls' => true,
+        'auth'     => ['username' => 'myusername', 'secretkey' => 'mypassword'],
+    ];
+
+    try {
+        Mailer::setTransport('smtp', $opts);
+        Mailer::send($email);
     }
     catch (Exception $e) {
         ...
