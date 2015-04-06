@@ -394,12 +394,15 @@ class SmtpClient
 	/**
 	 * Vérifie la réponse renvoyée par le serveur.
 	 *
-	 * @param mixed $codes Codes retour acceptés. Peut être un code seul ou un tableau.
+	 * @param mixed   $codes   Codes retour acceptés. Peut être un code seul
+	 *                         ou un tableau de codes.
+	 * @param integer $timeout Timeout de lecture. Par défaut, $this->iotimeout
+	 *                         sera utilisé.
 	 *
 	 * @throws Exception
 	 * @return boolean
 	 */
-	public function checkResponse($codes)
+	public function checkResponse($codes, $timeout = 0)
 	{
 		if (!$this->isConnected()) {
 			throw new Exception("The connection was closed!");
@@ -430,13 +433,8 @@ class SmtpClient
 		for ($i = 0; $i < count($pipeline); $i++) {
 			$this->responseData = '';
 
-			// voir commentaire de la propriété self::$iotimeout
-			$timeout = $this->iotimeout;
-			if ($this->lastCommand == 'DATA') {
-				$timeout /= 2;
-			}
-			else if ($this->lastCommand == '.') {
-				$timeout *= 2;
+			if (!is_numeric($timeout) || $timeout < 1) {
+				$timeout = $this->iotimeout;
 			}
 
 			stream_set_timeout($this->socket, (integer) ceil($timeout));
@@ -696,7 +694,7 @@ class SmtpClient
 		// E: 503, 554
 		//
 		$this->put('DATA');
-		if (!$this->checkResponse(354)) {
+		if (!$this->checkResponse(354, ($this->iotimeout / 2))) {
 			return false;
 		}
 
@@ -710,7 +708,7 @@ class SmtpClient
 		// E: 450, 451, 452, 550, 552, 554
 		//
 		$this->put('.');
-		if (!$this->checkResponse(250)) {
+		if (!$this->checkResponse(250, ($this->iotimeout * 2))) {
 			return false;
 		}
 
