@@ -77,7 +77,11 @@ class Smtp extends aTransport
 	 */
 	public function send(Email $email)
 	{
-		$email = $this->prepareMessage($email);
+		// Récupération de l’expéditeur (à faire en premier)
+		$sender = $email->getSender();
+
+		// Préparation des en-têtes et du message
+		$email  = $this->prepareMessage($email);
 
 		//
 		// Nous devons passer directement les adresses email des destinataires
@@ -132,7 +136,7 @@ class Smtp extends aTransport
 			}
 		}
 
-		if (!$this->smtp->from($email->sender)) {
+		if (!$this->smtp->from($sender)) {
 			$this->smtp->quit();
 			throw new Exception(sprintf(
 				"Sender address rejected (%s)",

@@ -63,7 +63,11 @@ class Mail extends aTransport
 	 */
 	public function send(Email $email)
 	{
-		$email = $this->prepareMessage($email);
+		// Récupération de l’expéditeur (à faire en premier)
+		$sender = $email->getSender();
+
+		// Préparation des en-têtes et du message
+		$email  = $this->prepareMessage($email);
 
 		//
 		// Si l’option PHP 'sendmail_path' est vide, cela signifie que PHP
@@ -129,13 +133,6 @@ class Mail extends aTransport
 		}
 
 		$params = null;
-		if (!ini_get('safe_mode')) {
-			$params = $this->opts['additional_params'];
-
-			if (strpos($params, '-f') === false) {
-				$params .= ' -f' . $email->sender;
-			}
-		}
 
 		if ($this->opts['php_use_smtp']) {
 			//
@@ -144,7 +141,14 @@ class Mail extends aTransport
 			// (adresse qui sera utilisée par le serveur SMTP pour forger l’entête
 			// Return-Path).
 			//
-			ini_set('sendmail_from', $email->sender);
+			ini_set('sendmail_from', $sender);
+		}
+		else if (!ini_get('safe_mode')) {
+			$params = $this->opts['additional_params'];
+
+			if (strpos($params, '-f') === false) {
+				$params .= ' -f' . $sender;
+			}
 		}
 
 		set_error_handler(array($this, 'errorHandler'));

@@ -42,7 +42,11 @@ class Sendmail extends aTransport
 	 */
 	public function send(Email $email)
 	{
-		$email = $this->prepareMessage($email);
+		// Récupération de l’expéditeur (à faire en premier)
+		$sender = $email->getSender();
+
+		// Préparation des en-têtes et du message
+		$email  = $this->prepareMessage($email);
 
 		$message = $email->__toString();
 
@@ -58,7 +62,7 @@ class Sendmail extends aTransport
 		}
 
 		if (strpos($command, ' -f') === false) {
-			$command .= ' -f' . escapeshellcmd($email->sender);
+			$command .= ' -f' . escapeshellcmd($sender);
 		}
 
 		if (!($sendmail = popen($command, 'wb'))) {

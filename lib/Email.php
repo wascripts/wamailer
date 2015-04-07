@@ -35,19 +35,20 @@ class Email
 	const PRIORITY_LOWEST  = 5;
 
 	/**
-	 * Email du destinataire
-	 *
-	 * @var string
-	 */
-	protected $sender = '';
-
-	/**
 	 * Jeu de caractères générique de l’email (D’autres jeux peuvent être
 	 * ultérieurement définis pour des sous-ensembles de l’email)
 	 *
 	 * @var string
 	 */
 	public $charset = 'UTF-8';
+
+	/**
+	 * Nom de l’hôte.
+	 * Utilisé dans l’identifiant du message et dans ceux des fichiers joints.
+	 *
+	 * @var string
+	 */
+	public $hostname = '';
 
 	/**
 	 * Bloc d’en-têtes de l’email (accès en lecture)
@@ -86,14 +87,6 @@ class Email
 	 * @var string
 	 */
 	protected $message_txt = '';
-
-	/**
-	 * Nom de l’hôte.
-	 * Utilisé dans l’identifiant du message et dans ceux des fichiers joints.
-	 *
-	 * @var string
-	 */
-	public $hostname = '';
 
 	/**
 	 * Constructeur de classe
@@ -165,9 +158,6 @@ class Email
 
 /*		if ($fullParse) {
 			$sender = $email->headers->get('Return-Path');
-			if (!is_null($sender)) {
-				$email->sender = trim($sender->value, '<>');
-			}
 
 			// @todo
 			// Récupération charset "global"
@@ -226,11 +216,7 @@ class Email
 	 */
 	public function setFrom($email, $name = null)
 	{
-		$email = $this->sender = trim($email);
-
-		if (!$this->headers->get('Return-Path')) {
-			$this->setReturnPath($email);
-		}
+		$email = trim($email);
 
 		if (!empty($name)) {
 			$email = sprintf('%s <%s>',
@@ -354,7 +340,7 @@ class Email
 	{
 		$this->headers->add(
 			'Disposition-Notification-To',
-			'<' . (!empty($email) ? trim($email) : $this->sender) . '>'
+			'<' . (!empty($email) ? trim($email) : $this->getSender()) . '>'
 		);
 	}
 
@@ -368,8 +354,34 @@ class Email
 	{
 		$this->headers->set(
 			'Return-Path',
-			'<' . (!empty($email) ? trim($email) : $this->sender) . '>'
+			'<' . (!empty($email) ? trim($email) : $this->getSender()) . '>'
 		);
+	}
+
+	/**
+	 * Retourne l’adresse email de l’expéditeur dans cet ordre de préférence :
+	 *  - Adresse définie dans l’en-tête 'Return-Path'
+	 *  - Adresse définie dans l’en-tête 'Sender'
+	 *  - Première adresse présente dans l’en-tête 'From'
+	 *
+	 * @return string
+	 */
+	public function getSender()
+	{
+		$sender = '';
+
+		foreach (array('Return-Path','Sender','From') as $name) {
+			if ($header = $this->headers->get($name)) {
+				$list = Mailer::clearAddressList($header->value);
+
+				if (isset($list[0])) {
+					$sender = $list[0];
+					break;
+				}
+			}
+		}
+
+		return $sender;
 	}
 
 	/**
@@ -655,7 +667,6 @@ class Email
 	public function __get($name)
 	{
 		switch ($name) {
-			case 'sender':
 			case 'headers':
 			case 'textPart':
 			case 'htmlPart':
