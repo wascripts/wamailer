@@ -211,10 +211,24 @@ class Email
 	}
 
 	/**
-	 * @param string $email Email de l’expéditeur
-	 * @param string $name  Personnalisation du nom de l’expéditeur
+	 * Définit l’en-tête 'From' du message.
+	 * Cet en-tête doit lister le ou les auteurs du message.
+	 *
+	 * @param string $email Email de l’auteur
+	 * @param string $name  Nom à afficher
 	 */
 	public function setFrom($email, $name = null)
+	{
+		$this->addFrom($email, $name);
+	}
+
+	/**
+	 * Ajoute une adresse à l’en-tête 'From'.
+	 *
+	 * @param string $email Email de l’auteur
+	 * @param string $name  Nom à afficher
+	 */
+	public function addFrom($email, $name = null)
 	{
 		$email = trim($email);
 
@@ -225,12 +239,41 @@ class Email
 			);
 		}
 
-		$this->headers->set('From', $email);
+		if (is_null($this->headers->get('From'))) {
+			$this->headers->set('From', $email);
+		}
+		else {
+			$this->headers->get('From')->append(', ' . $email);
+		}
+	}
+
+	/**
+	 * Adresse de l’expéditeur du message.
+	 * Utile si elle diffère de l’adresse définie dans l’en-tête 'From'.
+	 * Obligatoire si l’en-tête 'From' contient plusieurs adresses.
+	 *
+	 * @see RFC 5322#3.6.2 - Originator Fields
+	 *
+	 * @param string $email Email de l’expéditeur
+	 * @param string $name  Nom à afficher
+	 */
+	public function setSender($email, $name = null)
+	{
+		$email = trim($email);
+
+		if (!empty($name)) {
+			$email = sprintf('%s <%s>',
+				Mime\Header::encode('Sender', $name, $this->charset, 'phrase'),
+				$email
+			);
+		}
+
+		$this->headers->set('Sender', $email);
 	}
 
 	/**
 	 * @param string $email Email du destinataire
-	 * @param string $name  Personnalisation du nom du destinataire
+	 * @param string $name  Nom à afficher
 	 */
 	public function addRecipient($email, $name = null)
 	{
@@ -239,7 +282,7 @@ class Email
 
 	/**
 	 * @param string $email Email du destinataire
-	 * @param string $name  Personnalisation du nom du destinataire
+	 * @param string $name  Nom à afficher
 	 */
 	public function addCCRecipient($email, $name = null)
 	{
@@ -256,7 +299,7 @@ class Email
 
 	/**
 	 * @param string $email  Email du destinataire
-	 * @param string $name   Personnalisation du nom du destinataire
+	 * @param string $name   Nom à afficher
 	 * @param string $header Nom de l’en-tête concerné (parmi To, Cc et Bcc)
 	 */
 	private function _addRecipient($email, $name, $header)
@@ -311,7 +354,7 @@ class Email
 
 	/**
 	 * @param string $email Email de réponse
-	 * @param string $name  Personnalisation
+	 * @param string $name  Nom à afficher
 	 */
 	public function setReplyTo($email = null, $name = null)
 	{
