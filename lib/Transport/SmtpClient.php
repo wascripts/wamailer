@@ -266,17 +266,17 @@ class SmtpClient
 			$server .= ':'.parse_url($this->server, PHP_URL_PORT);
 		}
 
-		$startTLS = $this->opts['starttls'];
-		if (is_null($startTLS) && $port == 587) {
-			$startTLS = true;
-		}
-
 		$proto = substr(parse_url($server, PHP_URL_SCHEME), 0, 3);
 		$useSSL   = ($proto == 'ssl' || $proto == 'tls');
-		$startTLS = (!$useSSL && $startTLS);
+		$startTLS = (!$useSSL) ? $this->opts['starttls'] : false;
 
 		// check de l’extension openssl si besoin
-		if (($useSSL || $startTLS) && !in_array('tls', stream_get_transports())) {
+		if (in_array('tls', stream_get_transports())) {
+			if (is_null($startTLS) && $port == 587) {
+				$startTLS = true;
+			}
+		}
+		else if ($useSSL || $startTLS) {
 			throw new Exception("Cannot use SSL/TLS because the openssl extension is not available!");
 		}
 
