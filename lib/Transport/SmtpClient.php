@@ -186,6 +186,17 @@ class SmtpClient
 	private $pipeline = array();
 
 	/**
+	 * Indique si une transaction est en cours.
+	 * Permet par exemple d’éviter l’envoi d’une commande RSET, superflue
+	 * si aucune transaction n’est en cours.
+	 *
+	 * @see RFC 5321#3.3 - Mail Transactions
+	 *
+	 * @var boolean
+	 */
+	private $inMailTransaction = false;
+
+	/**
 	 * @param array $opts
 	 */
 	public function __construct(array $opts = array())
@@ -477,6 +488,16 @@ class SmtpClient
 
 			if (!in_array($this->responseCode, $pipeline[$i]['codes'])) {
 				$result = false;
+				continue;
+			}
+
+			if ($this->inMailTransaction) {
+				if (in_array($pipeline[$i]['cmd'], array('EHLO','HELO','RSET','QUIT','.'))) {
+					$this->inMailTransaction = false;
+				}
+			}
+			else if ($pipeline[$i]['cmd'] == 'MAIL FROM') {
+				$this->inMailTransaction = true;
 			}
 		}
 
@@ -762,6 +783,10 @@ class SmtpClient
 	 */
 	public function reset()
 	{
+		if (!$this->inMailTransaction) {
+			return true;
+		}
+
 		//
 		// S: 250
 		//

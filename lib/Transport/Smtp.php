@@ -135,6 +135,9 @@ class Smtp extends aTransport
 				));
 			}
 		}
+		else {
+			$this->smtp->reset();
+		}
 
 		if (!$this->smtp->from($sender)) {
 			$this->smtp->quit();
