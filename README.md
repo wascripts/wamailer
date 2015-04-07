@@ -18,14 +18,14 @@ Fonctionnalités
  * Support des emails HTML et multi-formats (texte et HTML)
  * Destinataires multiples directs, en CC ou BCC
  * Support des attachements de fichiers
- * Support des images embarquées (applicable aussi bien à d’autres types de fichier)
+ * Support des images embarquées (applicable aussi à d’autres types de fichier)
  * Support des codages de transfert 8bit, quoted-printable et base64
  * Support d’Unicode via le codage UTF-8
  * Ajout, modification et suppression d’en-têtes d’email
  * Reformatage des messages sur la limite de 78 caractères par ligne (word wrap)
  * Support SMTP complet
- * Méthodes d'authentification CRAM-MD5, LOGIN et PLAIN (SMTP)
- * Sécurisation possible des connexions avec SSL/TLS
+ * Méthodes d’authentification CRAM-MD5, LOGIN et PLAIN (SMTP)
+ * Sécurisation des connexions avec SSL/TLS
  * Support des appels systèmes à Sendmail ou compatible
  * Support expérimental d’OpenPGP/MIME (voir la page OpenPgp)
 
@@ -36,7 +36,7 @@ Utilisation
 Incluez simplement la classe dans vos scripts.
 Exemple d’utilisation :
 
-    // Inclusion de l'autoloader de Wamailer.
+    // Inclusion de l’autoloader de Wamailer.
     // Inutile dans le cas où wamailer est géré par un gestionnaire de
     // dépendances tel que composer.
     require 'wamailer.php';
@@ -68,10 +68,10 @@ Deuxième exemple avec un email texte et html et en utilisant un serveur SMTP :
     $email->setTextBody('This is the message in plain text format');
     $email->setHTMLBody('This is the <strong>message</strong> in HTML format.');
 
+    // Sur le port 587, l’option 'starttls' est automatiquement activée.
     $opts = [
-        'server'   => 'mail.mydomain.tld:587',
-        'starttls' => true,
-        'auth'     => ['username' => 'myusername', 'secretkey' => 'mypassword'],
+        'server' => 'mail.mydomain.tld:587',
+        'auth'   => ['username' => 'myusername', 'secretkey' => 'mypassword'],
     ];
 
     try {

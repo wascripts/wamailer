@@ -94,10 +94,12 @@ class SmtpClient
 		 * Utilisation de la commande STARTTLS pour sécuriser la connexion.
 		 * Ignoré si la connexion est sécurisée en utilisant un des préfixes de
 		 * transport ssl ou tls supportés par PHP.
+		 * Si laissé à null, STARTTLS est automatiquement utilisé si le port
+		 * de connexion est 587.
 		 *
 		 * @var boolean
 		 */
-		'starttls' => false,
+		'starttls' => null,
 
 		/**
 		 * Utilisés pour la création du contexte de flux avec stream_context_create()
@@ -264,9 +266,14 @@ class SmtpClient
 			$server .= ':'.parse_url($this->server, PHP_URL_PORT);
 		}
 
+		$startTLS = $this->opts['starttls'];
+		if (is_null($startTLS) && $port == 587) {
+			$startTLS = true;
+		}
+
 		$proto = substr(parse_url($server, PHP_URL_SCHEME), 0, 3);
 		$useSSL   = ($proto == 'ssl' || $proto == 'tls');
-		$startTLS = (!$useSSL && $this->opts['starttls']);
+		$startTLS = (!$useSSL && $startTLS);
 
 		// check de l’extension openssl si besoin
 		if (($useSSL || $startTLS) && !in_array('tls', stream_get_transports())) {
@@ -276,9 +283,10 @@ class SmtpClient
 		//
 		// Ouverture du socket de connexion au serveur SMTP
 		//
-		$context_opts   = $this->opts['stream_opts'];
-		$context_params = $this->opts['stream_params'];
-		$context = stream_context_create($context_opts, $context_params);
+		$context = stream_context_create(
+			$this->opts['stream_opts'],
+			$this->opts['stream_params']
+		);
 
 		$this->socket = stream_socket_client(
 			$server,
@@ -305,37 +313,8 @@ class SmtpClient
 
 		$this->hello($this->hostname);
 
-		//
-		// Le cas échéant, on utilise le protocole sécurisé TLS
-		//
-		// S: 220
-		// E: 454, 501
-		//
 		if ($startTLS) {
-			if (!$this->hasSupport('STARTTLS')) {
-				throw new Exception("SMTP server doesn't support STARTTLS command");
-			}
-
-			$this->put('STARTTLS');
-			if (!$this->checkResponse(220)) {
-				throw new Exception(sprintf(
-					"SMTP server returned an error after STARTTLS command (%s)",
-					$this->responseData
-				));
-				return false;
-			}
-
-			$crypto_method = STREAM_CRYPTO_METHOD_TLS_CLIENT;
-			if (isset($context_opts['ssl']['crypto_method'])) {
-				$crypto_method = $context_opts['ssl']['crypto_method'];
-			}
-
-			if (!stream_socket_enable_crypto($this->socket, true, $crypto_method)) {
-				fclose($this->socket);
-				throw new Exception("Cannot enable TLS encryption");
-			}
-
-			$this->hello($this->hostname);
+			$this->startTLS();
 		}
 
 		if ($username && $secretkey) {
@@ -343,6 +322,44 @@ class SmtpClient
 		}
 
 		return true;
+	}
+
+	/**
+	 * Utilisation de la commande STARTTLS pour sécuriser la connexion.
+	 *
+	 * @throws Exception
+	 */
+	public function startTLS()
+	{
+		if (!$this->hasSupport('STARTTLS')) {
+			throw new Exception("SMTP server doesn't support STARTTLS command");
+		}
+
+		//
+		// S: 220
+		// E: 454, 501
+		//
+		$this->put('STARTTLS');
+		if (!$this->checkResponse(220)) {
+			throw new Exception(sprintf(
+				"STARTTLS command returned an error (%s)",
+				$this->responseData
+			));
+		}
+
+		$ssl_options   = $this->opts['stream_opts']['ssl'];
+		$crypto_method = STREAM_CRYPTO_METHOD_TLS_CLIENT;
+
+		if (isset($ssl_options['crypto_method'])) {
+			$crypto_method = $ssl_options['crypto_method'];
+		}
+
+		if (!stream_socket_enable_crypto($this->socket, true, $crypto_method)) {
+			fclose($this->socket);
+			throw new Exception("Cannot enable TLS encryption");
+		}
+
+		$this->hello($this->hostname);
 	}
 
 	/**
