@@ -675,11 +675,19 @@ class SmtpClient
 	 *
 	 * @param string $message
 	 *
+	 * @throws Exception
 	 * @return boolean
 	 */
 	public function send($message)
 	{
 		$message = preg_replace('/\r\n?|\n/', "\r\n", $message);
+
+		if (($maxsize = $this->hasSupport('SIZE')) && is_numeric($maxsize)) {
+			$message_len = strlen($message);
+			if ($message_len > $maxsize) {
+				throw new Exception("The message length exceeds the maximum allowed by the server");
+			}
+		}
 
 		//
 		// Si un point se trouve en début de ligne, on le double pour éviter
