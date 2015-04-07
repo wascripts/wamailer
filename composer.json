@@ -19,5 +19,10 @@
 		"psr-4": {
 			"Wamailer\\": "lib/"
 		}
+	},
+	"extra": {
+		"branch-alias": {
+			"dev-master": "4.0.x-dev"
+		}
 	}
 }
