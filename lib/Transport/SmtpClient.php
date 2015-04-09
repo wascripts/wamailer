@@ -24,13 +24,18 @@ use Exception;
 class SmtpClient
 {
 	/**
-	 * Nom de l’hôte.
-	 * Utilisé dans les commandes EHLO ou HELO.
-	 * Configurable également via SmtpClient::options().
+	 * Nom de l’hôte local.
+	 * Utilisé dans les commandes EHLO/HELO.
+	 * Doit être un nom de domaine pleinement qualifié (FQDN) ou, à défaut,
+	 * une adresse IPv4 ou IPv6.
+	 * Cette propriété est configurable également via SmtpClient::options().
 	 *
+	 * Si laissée vide, une auto-détection est effectuée dans SmtpClient::__construct().
+	 *
+	 * @see self::getLocalHost()
 	 * @var string
 	 */
-	public $hostname = '';
+	public $localhost   = '';
 
 	/**
 	 * Socket de connexion au serveur SMTP
@@ -84,7 +89,7 @@ class SmtpClient
 
 	/**
 	 * Options diverses.
-	 * Les propriétés 'hostname', 'timeout', 'iotimeout' et 'debug' peuvent être
+	 * Les propriétés 'localhost', 'timeout', 'iotimeout' et 'debug' peuvent être
 	 * configurées également au travers de la méthode SmtpClient::options()
 	 *
 	 * @var array
@@ -211,19 +216,16 @@ class SmtpClient
 			$this->server = 'tcp://'.$this->server;
 		}
 
-		if (!$this->hostname) {
-			if (!($this->hostname = gethostname())) {
-				$this->hostname = (!empty($_SERVER['SERVER_NAME']))
-					? $_SERVER['SERVER_NAME'] : 'localhost';
-			}
-		}
-
 		$this->options($opts);
+
+		if (!$this->localhost) {
+			$this->localhost = $this->getLocalHost();
+		}
 	}
 
 	/**
 	 * Définition des options d’utilisation.
-	 * Les options 'hostname', 'debug', 'timeout' et 'iotimeout' renvoient
+	 * Les options 'localhost', 'debug', 'timeout' et 'iotimeout' renvoient
 	 * aux propriétés de classe de même nom.
 	 *
 	 * @param array $opts
@@ -233,7 +235,7 @@ class SmtpClient
 	public function options(array $opts = array())
 	{
 		// Configuration alternative
-		foreach (array('hostname','debug','timeout','iotimeout') as $name) {
+		foreach (array('localhost','debug','timeout','iotimeout') as $name) {
 			if (!empty($opts[$name])) {
 				$this->{$name} = $opts[$name];
 				unset($opts[$name]);
@@ -243,6 +245,50 @@ class SmtpClient
 		$this->opts = array_replace_recursive($this->opts, $opts);
 
 		return $this->opts;
+	}
+
+	/**
+	 * Retourne le nom d’hôte qualifié (FQDN).
+	 * Si aucun nom qualifié n’a été trouvé, retourne l’adresse IP.
+	 *
+	 * @return string
+	 */
+	public function getLocalHost()
+	{
+		$valid_fqdn = function ($host) {
+			$subdomain = '[A-Z0-9][A-Z0-9-]*[A-Z0-9]';
+			return preg_match("/^$subdomain(?:\.$subdomain)+$/i", $host);
+		};
+
+		$ip = filter_input(INPUT_SERVER, 'SERVER_ADDR', FILTER_VALIDATE_IP);
+
+		if ($ip) {
+			$host = filter_input(INPUT_SERVER, 'SERVER_NAME');
+			// Peut contenir le numéro de port
+			$host = preg_replace('#:\d+$#', '', $host);
+			// Peut être une IPv6 sous la forme [::1]
+			$host = trim($host, '[]');
+
+			if ($valid_fqdn($host)) {
+				return $host;
+			}
+		}
+		else {
+			if (!($host = gethostname())) {
+				return '127.0.0.1';
+			}
+
+			$ip = gethostbyname($host); // IPv4 only
+			if ($ip != $host) { // gethostbyname() peut échouer
+				$host = gethostbyaddr($ip);
+
+				if ($valid_fqdn($host)) {
+					return $host;
+				}
+			}
+		}
+
+		return $ip;
 	}
 
 	/**
@@ -322,7 +368,7 @@ class SmtpClient
 			return false;
 		}
 
-		$this->hello($this->hostname);
+		$this->hello($this->localhost);
 
 		if ($startTLS) {
 			$this->startTLS();
@@ -370,7 +416,7 @@ class SmtpClient
 			throw new Exception("Cannot enable TLS encryption");
 		}
 
-		$this->hello($this->hostname);
+		$this->hello($this->localhost);
 	}
 
 	/**
@@ -507,21 +553,42 @@ class SmtpClient
 	/**
 	 * Commande de démarrage EHLO ou HELO auprès du serveur
 	 *
-	 * @param string $hostname
+	 * @param string $localhost
 	 *
+	 * @throws Exception
 	 * @return boolean
 	 */
-	public function hello($hostname)
+	public function hello($localhost)
 	{
+		if (!$localhost) {
+			throw new Exception("Invalid localhost argument");
+		}
+
+		/**
+		* Si l’hôte local s’identifie avec une IP, celle-ci doit être présentée
+		* sous forme litérale comme décrit dans la RFC.
+		*
+		* @see RFC 5321#2.3.5 - Domain Names
+		* @see RFC 5321#4.1.3 - Address Literals
+		*/
+		if (filter_var($localhost, FILTER_VALIDATE_IP)) {
+			$literal = '[%s]';
+			if (filter_var($localhost, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+				$literal = '[IPv6:%s]';
+			}
+
+			$localhost = sprintf($literal, $localhost);
+		}
+
 		//
 		// Comme on est poli, on dit bonjour
 		//
 		// S: 250
 		// E: 502, 504, 550
 		//
-		$this->put(sprintf('EHLO %s', $hostname));
+		$this->put(sprintf('EHLO %s', $localhost));
 		if (!$this->checkResponse(250)) {
-			$this->put(sprintf('HELO %s', $hostname));
+			$this->put(sprintf('HELO %s', $localhost));
 			if (!$this->checkResponse(250)) {
 				return false;
 			}
