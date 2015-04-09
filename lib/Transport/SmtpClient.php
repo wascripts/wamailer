@@ -202,6 +202,24 @@ class SmtpClient
 	private $inMailTransaction = false;
 
 	/**
+	 * Tableau compilant quelques informations sur la connexion en cours (accès en lecture).
+	 *
+	 * @var array
+	 */
+	private $serverInfos = array(
+		'host'      => '',
+		'port'      => 0,
+		// Annonce de présentation du serveur
+		'greeting'  => '',
+		// true si la connexion est chiffrée avec SSL/TLS
+		'encrypted' => false,
+		// true si le certificat a été vérifié
+		'trusted'   => false,
+		// Ressource de contexte de flux manipulable avec les fonctions stream_context_*
+		'context'   => null
+	);
+
+	/**
 	 * @param array $opts
 	 */
 	public function __construct(array $opts = array())
@@ -260,6 +278,9 @@ class SmtpClient
 			return preg_match("/^$subdomain(?:\.$subdomain)+$/i", $host);
 		};
 
+		// fix: peut être incorrect. Cette variable indique sur quelle
+		// interface le serveur HTTP a reçu la requête (donc en cas de requête
+		// effectuée localement, l’IP sera par exemple 127.0.0.1 ou ::1).
 		$ip = filter_input(INPUT_SERVER, 'SERVER_ADDR', FILTER_VALIDATE_IP);
 
 		if ($ip) {
@@ -318,18 +339,23 @@ class SmtpClient
 			$server = 'tcp://'.$server;
 		}
 
-		$port = parse_url($server, PHP_URL_PORT);
-		if (!$port) {
-			$server .= ':'.parse_url($this->server, PHP_URL_PORT);
+		$url = parse_url($server);
+		if (!$url) {
+			throw new Exception("Invalid server argument given.");
 		}
 
-		$proto = substr(parse_url($server, PHP_URL_SCHEME), 0, 3);
+		if (empty($url['port'])) {
+			$url['port'] = parse_url($this->server, PHP_URL_PORT);
+			$server .= ':'.$url['port'];
+		}
+
+		$proto = substr($url['scheme'], 0, 3);
 		$useSSL   = ($proto == 'ssl' || $proto == 'tls');
 		$startTLS = (!$useSSL) ? $this->opts['starttls'] : false;
 
 		// check de l’extension openssl si besoin
 		if (in_array('tls', stream_get_transports())) {
-			if (is_null($startTLS) && $port == 587) {
+			if (is_null($startTLS) && $url['port'] == 587) {
 				$startTLS = true;
 			}
 		}
@@ -368,11 +394,27 @@ class SmtpClient
 			return false;
 		}
 
+		$greeting = rtrim(substr($this->responseData, 4));
+
 		$this->hello($this->localhost);
 
 		if ($startTLS) {
 			$this->startTLS();
 		}
+
+		$infos = array();
+		$infos['host']      = $url['host'];
+		$infos['port']      = $url['port'];
+		$infos['greeting']  = $greeting;
+		$infos['encrypted'] = ($useSSL || $startTLS);
+		$infos['trusted']   = ($infos['encrypted'] && PHP_VERSION_ID >= 50600);
+		$infos['context']   = $context;
+
+		if (isset($this->opts['stream_opts']['ssl']['verify_peer'])) {
+			$infos['trusted'] = $this->opts['stream_opts']['ssl']['verify_peer'];
+		}
+
+		$this->serverInfos = $infos;
 
 		if ($username && $secretkey) {
 			return $this->authenticate($username, $secretkey);
@@ -896,6 +938,16 @@ class SmtpClient
 			fclose($this->socket);
 			$this->socket = null;
 		}
+
+		$infos = array();
+		$infos['host']      = '';
+		$infos['port']      = 0;
+		$infos['greeting']  = '';
+		$infos['encrypted'] = false;
+		$infos['trusted']   = false;
+		$infos['context']   = null;
+
+		$this->serverInfos = $infos;
 	}
 
 	/**
@@ -925,6 +977,7 @@ class SmtpClient
 	public function __get($name)
 	{
 		switch ($name) {
+			case 'serverInfos':
 			case 'responseCode':
 			case 'responseData':
 			case 'lastCommand':
