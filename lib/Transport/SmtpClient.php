@@ -556,7 +556,7 @@ class SmtpClient
 			stream_set_timeout($this->socket, (integer) ceil($timeout));
 
 			do {
-				$data = fgets($this->socket);
+				$data = fgets($this->socket, 1024);
 
 				if (!$data) {
 					$md = stream_get_meta_data($this->socket);
