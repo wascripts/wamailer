@@ -381,7 +381,10 @@ class SmtpClient
 		);
 
 		if (!$this->socket) {
-			throw new Exception("Failed to connect to SMTP server ($errno - $errstr)");
+			if ($errno == 0) {
+				$errstr = 'Unknown error. Check PHP errors log to get more information.';
+			}
+			throw new Exception("Failed to connect to SMTP server ($errstr)");
 		}
 
 		stream_set_timeout($this->socket, $this->iotimeout);
