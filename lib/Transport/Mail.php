@@ -73,10 +73,10 @@ class Mail extends aTransport
 		// Si l’option PHP 'sendmail_path' est vide, cela signifie que PHP
 		// ouvre une connexion vers un serveur SMTP défini dans sa configuration.
 		//
+		$sendmail_path = ini_get('sendmail_path');
 		if (!isset($this->opts['php_use_smtp'])) {
-			// Si ini_get() est désactivée, on reçoit la valeur null
-			$path = ini_get('sendmail_path');
-			$this->opts['php_use_smtp'] = ($path !== null && $path == '');
+			// Si ini_get() est désactivée, on a reçu la valeur null
+			$this->opts['php_use_smtp'] = ($sendmail_path !== null && $sendmail_path == '');
 		}
 
 		//
@@ -144,9 +144,9 @@ class Mail extends aTransport
 			ini_set('sendmail_from', $sender);
 		}
 		else if (!ini_get('safe_mode')) {
-			$params = $this->opts['additional_params'];
+			$params = ' '.$this->opts['additional_params'];
 
-			if (strpos($params, '-f') === false) {
+			if (!strpos($sendmail_path . $params, ' -f')) {
 				$params .= ' -f' . escapeshellarg($sender);
 			}
 		}

@@ -61,7 +61,7 @@ class Sendmail extends aTransport
 			$command = ini_get('sendmail_path');
 		}
 
-		if (strpos($command, ' -f') === false) {
+		if (!strpos($command, ' -f')) {
 			$command .= ' -f' . escapeshellarg($sender);
 		}
 
