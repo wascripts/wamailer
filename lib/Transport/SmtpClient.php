@@ -28,9 +28,9 @@ class SmtpClient
 	 * Utilisé dans les commandes EHLO/HELO.
 	 * Doit être un nom de domaine pleinement qualifié (FQDN) ou, à défaut,
 	 * une adresse IPv4 ou IPv6.
-	 * Cette propriété est configurable également via SmtpClient::options().
+	 * Cette propriété est configurable également via self::options().
 	 *
-	 * Si laissée vide, une auto-détection est effectuée dans SmtpClient::__construct().
+	 * Si laissée vide, une auto-détection est effectuée dans self::__construct().
 	 *
 	 * @see self::getLocalHost()
 	 * @var string
@@ -53,7 +53,7 @@ class SmtpClient
 
 	/**
 	 * Timeout de connexion.
-	 * Configurable également via SmtpClient::options().
+	 * Configurable également via self::options().
 	 *
 	 * @var integer
 	 */
@@ -69,7 +69,7 @@ class SmtpClient
 	 * Pour la commande de fin d’envoi du message (.), t = iotimeout * 2.
 	 * Lors des envois de données, t = ceil(iotimeout / 2).
 	 *
-	 * Configurable également via SmtpClient::options().
+	 * Configurable également via self::options().
 	 *
 	 * @see RFC 5321#4.5.3.2 - Timeouts
 	 *
@@ -81,7 +81,7 @@ class SmtpClient
 	 * Débogage.
 	 * true pour afficher sur la sortie standard ou bien toute valeur utilisable
 	 * avec call_user_func()
-	 * Configurable également via SmtpClient::options().
+	 * Configurable également via self::options().
 	 *
 	 * @var boolean|callable
 	 */
@@ -90,7 +90,7 @@ class SmtpClient
 	/**
 	 * Options diverses.
 	 * Les propriétés 'localhost', 'timeout', 'iotimeout' et 'debug' peuvent être
-	 * configurées également au travers de la méthode SmtpClient::options()
+	 * configurées également au travers de la méthode self::options()
 	 *
 	 * @var array
 	 */
@@ -344,14 +344,22 @@ class SmtpClient
 			throw new Exception("Invalid server argument given.");
 		}
 
-		if (empty($url['port'])) {
-			$url['port'] = parse_url($this->server, PHP_URL_PORT);
-			$server .= ':'.$url['port'];
-		}
-
 		$proto = substr($url['scheme'], 0, 3);
 		$useSSL   = ($proto == 'ssl' || $proto == 'tls');
 		$startTLS = (!$useSSL) ? $this->opts['starttls'] : false;
+
+		// Attribution du port par défaut si besoin
+		if (empty($url['port'])) {
+			$url['port'] = 25;
+			if ($useSSL) {
+				$url['port'] = 465;// SMTPS
+			}
+			else if ($startTLS) {
+				$url['port'] = 587;// SMTP over TLS
+			}
+
+			$server .= ':'.$url['port'];
+		}
 
 		// check de l’extension openssl si besoin
 		if (in_array('tls', stream_get_transports())) {
