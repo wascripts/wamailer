@@ -62,7 +62,7 @@ class Sendmail extends aTransport
 		}
 
 		if (strpos($command, ' -f') === false) {
-			$command .= ' -f' . escapeshellcmd($sender);
+			$command .= ' -f' . escapeshellarg($sender);
 		}
 
 		if (!($sendmail = popen($command, 'wb'))) {

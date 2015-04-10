@@ -147,7 +147,7 @@ class Mail extends aTransport
 			$params = $this->opts['additional_params'];
 
 			if (strpos($params, '-f') === false) {
-				$params .= ' -f' . $sender;
+				$params .= ' -f' . escapeshellarg($sender);
 			}
 		}
 
