@@ -233,7 +233,7 @@ class Header
 		$is_utf8  = (strcasecmp($charset, 'UTF-8') == 0);
 		$output   = '';
 
-		$_utf8test = array(
+		$utf8test = array(
 			0x80 => 0, 0xE0 => 0xC0, 0xF0 => 0xE0, 0xF8 => 0xF0, 0xFC => 0xF8, 0xFE => 0xFC
 		);
 
@@ -311,9 +311,9 @@ class Header
 					$char = substr($chunk, ($i - $v), $v);
 					$d = ($encoding == 'Q') ? hexdec(ltrim($char, '=')) : ord($char);
 
-					reset($_utf8test);
+					reset($utf8test);
 					for ($m = 1; $m <= 6; $m++) {
-						$test = each($_utf8test);
+						$test = each($utf8test);
 						if (($d & $test[0]) == $test[1]) {
 							if ($c < ($m*$v)) {
 								$chunk_len -= $c;
