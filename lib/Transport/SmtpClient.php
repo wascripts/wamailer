@@ -274,7 +274,7 @@ class SmtpClient
 	public function getLocalHost()
 	{
 		$valid_fqdn = function ($host) {
-			$subdomain = '[A-Z0-9][A-Z0-9-]*[A-Z0-9]';
+			$subdomain = '[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?';
 			return preg_match("/^$subdomain(?:\.$subdomain)+$/i", $host);
 		};
 
