@@ -287,8 +287,6 @@ class SmtpClient
 			$host = filter_input(INPUT_SERVER, 'SERVER_NAME');
 			// Peut contenir le numéro de port
 			$host = preg_replace('#:\d+$#', '', $host);
-			// Peut être une IPv6 sous la forme [::1]
-			$host = trim($host, '[]');
 
 			if ($valid_fqdn($host)) {
 				return $host;
