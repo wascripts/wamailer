@@ -11,7 +11,7 @@
  * @see RFC 3207 - Secure SMTP over Transport Layer Security
  * @see RFC 2920 - SMTP Service Extension for Command Pipelining
  *
- * D’autres source qui m’ont aidées :
+ * D’autres sources qui m’ont aidées :
  *
  * @link http://www.commentcamarche.net/internet/smtp.php3
  * @link http://www.iana.org/assignments/sasl-mechanisms/sasl-mechanisms.xhtml

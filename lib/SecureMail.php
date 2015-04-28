@@ -9,7 +9,7 @@
  * @see RFC 1847 - Security Multiparts for MIME: Multipart/Signed and Multipart/Encrypted
  * @see RFC 3156 - MIME Security with OpenPGP
  *
- * D’autres source qui m’ont aidées :
+ * D’autres sources qui m’ont aidées :
  *
  * @link https://www.gnupg.org/documentation/index.html
  * @link http://www.kfwebs.net/articles/article/15/PHP-Sendmail-classes
