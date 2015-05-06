@@ -294,16 +294,20 @@ class SmtpClient
 		}
 		else {
 			if (!($host = gethostname())) {
-				return '127.0.0.1';
+				$host = 'localhost';
 			}
 
 			$ip = gethostbyname($host); // IPv4 only
-			if ($ip != $host) { // gethostbyname() peut échouer
-				$host = gethostbyaddr($ip);
 
-				if ($valid_fqdn($host)) {
-					return $host;
-				}
+			// gethostbyname() peut avoir échoué
+			if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+				$ip = '127.0.0.1';
+			}
+
+			$host = gethostbyaddr($ip);
+
+			if ($valid_fqdn($host)) {
+				return $host;
 			}
 		}
 
