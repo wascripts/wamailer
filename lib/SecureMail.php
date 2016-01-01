@@ -3,7 +3,7 @@
  * @package   Wamailer
  * @author    Bobe <wascripts@phpcodeur.net>
  * @link      http://phpcodeur.net/wascripts/wamailer/
- * @copyright 2002-2015 Aurélien Maille
+ * @copyright 2002-2016 Aurélien Maille
  * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
  *
  * @see RFC 1847 - Security Multiparts for MIME: Multipart/Signed and Multipart/Encrypted
