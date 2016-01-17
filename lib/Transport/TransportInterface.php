@@ -9,7 +9,7 @@
 
 namespace Wamailer\Transport;
 
-interface iTransport
+interface TransportInterface
 {
 	/**
 	 * @param array $opts

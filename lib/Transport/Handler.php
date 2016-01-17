@@ -12,7 +12,7 @@ namespace Wamailer\Transport;
 use Exception;
 use Wamailer\Email;
 
-class Handler extends aTransport
+class Handler extends Transport
 {
 	/**
 	 * Fonction ou méthode d’appel pour le traitement de l’email.

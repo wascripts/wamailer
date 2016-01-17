@@ -17,7 +17,7 @@ namespace Wamailer\Transport;
 use Exception;
 use Wamailer\Email;
 
-class Mail extends aTransport
+class Mail extends Transport
 {
 	/**
 	 * Tableau d’options pour ce transport.

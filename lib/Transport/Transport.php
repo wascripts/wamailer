@@ -13,7 +13,7 @@ use Exception;
 use Wamailer\Mailer;
 use Wamailer\Email;
 
-abstract class aTransport implements iTransport
+abstract class Transport implements TransportInterface
 {
 	/**
 	 * Tableau d’options pour ce transport.

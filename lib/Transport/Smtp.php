@@ -13,7 +13,7 @@ use Exception;
 use Wamailer\Mailer;
 use Wamailer\Email;
 
-class Smtp extends aTransport
+class Smtp extends Transport
 {
 	/**
 	 * Tableau d’options pour ce transport.

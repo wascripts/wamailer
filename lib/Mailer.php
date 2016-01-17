@@ -10,7 +10,7 @@
 namespace Wamailer;
 
 use Exception;
-use Wamailer\Transport\iTransport;
+use Wamailer\Transport\TransportInterface;
 
 /**
  * Classe d’envoi d’emails
@@ -47,7 +47,7 @@ abstract class Mailer
 	);
 
 	/**
-	 * @var iTransport
+	 * @var TransportInterface
 	 */
 	private static $transport;
 
@@ -90,15 +90,15 @@ abstract class Mailer
 	 *
 	 * @param mixed $transport Différentes valeurs sont acceptées :
 	 *  - Nom d'un transport enregistré dans le tableau self::$transports
-	 *  - Nom d'une classe existante et implémentant l’interface iTransport
+	 *  - Nom d'une classe existante et implémentant l’interface TransportInterface
 	 *  - Toute valeur de type callable, utilisable avec call_user_func().
-	 *    Dans ce cas, un objet implémentant l’interface iTransport doit être
-	 *    renvoyé en sortie.
-	 *  - Un objet implémentant l’interface iTransport
+	 *    Dans ce cas, un objet implémentant l’interface TransportInterface
+	 *    doit être renvoyé en sortie.
+	 *  - Un objet implémentant l’interface TransportInterface
 	 * @param array $opts      Tableau d’options pour le transport concerné
 	 *
 	 * @throws Exception
-	 * @return iTransport
+	 * @return TransportInterface
 	 */
 	public static function setTransport($transport, array $opts = array())
 	{
@@ -124,9 +124,9 @@ abstract class Mailer
 			throw new Exception("Invalid transport argument given.");
 		}
 
-		if (!($transport instanceof iTransport)) {
+		if (!($transport instanceof TransportInterface)) {
 			throw new Exception(sprintf(
-				"Class '%s' must implements iTransport interface.",
+				"Class '%s' must implements TransportInterface interface.",
 				get_class($transport)
 			));
 		}

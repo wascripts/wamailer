@@ -12,7 +12,7 @@ namespace Wamailer\Transport;
 use Exception;
 use Wamailer\Email;
 
-class Sendmail extends aTransport
+class Sendmail extends Transport
 {
 	/**
 	 * Tableau d’options pour ce transport.
