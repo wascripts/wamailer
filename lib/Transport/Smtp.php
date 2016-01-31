@@ -69,6 +69,13 @@ class Smtp extends Transport
 	protected $smtp = null;
 
 	/**
+	 * Dernière réponse retournée par le serveur
+	 *
+	 * @var string
+	 */
+	protected $lastResponse = '';
+
+	/**
 	 * Traitement/envoi d’un email.
 	 *
 	 * @param Email $email
@@ -120,19 +127,13 @@ class Smtp extends Transport
 			$this->smtp->options($this->opts);
 
 			if (!$this->smtp->connect($server)) {
-				$this->smtp->quit();
-				throw new Exception(sprintf(
-					"Failed to connect (%s)",
-					$this->smtp->responseData
-				));
+				$this->close();
+				throw new Exception(sprintf("Failed to connect (%s)", $this->lastResponse));
 			}
 
 			if ($username && $secretkey && !$this->smtp->authenticate($username, $secretkey)) {
-				$this->smtp->quit();
-				throw new Exception(sprintf(
-					"Failed to authenticate (%s)",
-					$this->smtp->responseData
-				));
+				$this->close();
+				throw new Exception(sprintf("Failed to authenticate (%s)", $this->lastResponse));
 			}
 		}
 		else {
@@ -140,33 +141,24 @@ class Smtp extends Transport
 		}
 
 		if (!$this->smtp->from($sender)) {
-			$this->smtp->quit();
-			throw new Exception(sprintf(
-				"Sender address rejected (%s)",
-				$this->smtp->responseData
-			));
+			$this->close();
+			throw new Exception(sprintf("Sender address rejected (%s)", $this->lastResponse));
 		}
 
 		foreach ($recipients as $recipient) {
 			if (!$this->smtp->to($recipient)) {
-				$this->smtp->quit();
-				throw new Exception(sprintf(
-					"Recipient address rejected (%s)",
-					$this->smtp->responseData
-				));
+				$this->close();
+				throw new Exception(sprintf("Recipient address rejected (%s)", $this->lastResponse));
 			}
 		}
 
 		if (!$this->smtp->send($email->__toString())) {
-			$this->smtp->quit();
-			throw new Exception(sprintf(
-				"Error while sending data (%s)",
-				$this->smtp->responseData
-			));
+			$this->close();
+			throw new Exception(sprintf("Error while sending data (%s)", $this->lastResponse));
 		}
 
 		if (!$this->opts['keepalive']) {
-			$this->smtp->quit();
+			$this->close();
 		}
 	}
 
@@ -175,6 +167,9 @@ class Smtp extends Transport
 	 */
 	public function close()
 	{
+		// On récupère d’abord la dernière réponse
+		$this->lastResponse = rtrim($this->smtp->responseData);
+
 		if ($this->smtp instanceof SmtpClient) {
 			$this->smtp->quit();
 		}
