@@ -110,31 +110,8 @@ class Smtp extends Transport
 		// L’entête Bcc ne doit pas apparaitre dans l’email envoyé.
 		$email->headers->remove('Bcc');
 
-		if (!($this->smtp instanceof SmtpClient)) {
-			$this->smtp = new SmtpClient();
-		}
-
-		if (!$this->smtp->isConnected()) {
-			$server    = $this->opts['server'];
-			$username  = $this->opts['auth']['username'];
-			$secretkey = $this->opts['auth']['secretkey'];
-
-			// alias 'password'
-			if (!$secretkey && !empty($this->opts['auth']['password'])) {
-				$secretkey = $this->opts['auth']['password'];
-			}
-
-			$this->smtp->options($this->opts);
-
-			if (!$this->smtp->connect($server)) {
-				$this->close();
-				throw new Exception(sprintf("Failed to connect (%s)", $this->lastResponse));
-			}
-
-			if ($username && $secretkey && !$this->smtp->authenticate($username, $secretkey)) {
-				$this->close();
-				throw new Exception(sprintf("Failed to authenticate (%s)", $this->lastResponse));
-			}
+		if (!($this->smtp instanceof SmtpClient) || !$this->smtp->isConnected()) {
+			$this->connect();
 		}
 		else {
 			$this->smtp->reset();
@@ -159,6 +136,43 @@ class Smtp extends Transport
 
 		if (!$this->opts['keepalive']) {
 			$this->close();
+		}
+	}
+
+	/**
+	 * Initialisation de la connexion au serveur.
+	 *
+	 * @throws Exception
+	 */
+	public function connect()
+	{
+		if (!($this->smtp instanceof SmtpClient)) {
+			$this->smtp = new SmtpClient();
+		}
+
+		if ($this->smtp->isConnected()) {
+			throw new Exception("Connection is already established!");
+		}
+
+		$server    = $this->opts['server'];
+		$username  = $this->opts['auth']['username'];
+		$secretkey = $this->opts['auth']['secretkey'];
+
+		// alias 'password'
+		if (!$secretkey && !empty($this->opts['auth']['password'])) {
+			$secretkey = $this->opts['auth']['password'];
+		}
+
+		$this->smtp->options($this->opts);
+
+		if (!$this->smtp->connect($server)) {
+			$this->close();
+			throw new Exception(sprintf("Failed to connect (%s)", $this->lastResponse));
+		}
+
+		if ($username && $secretkey && !$this->smtp->authenticate($username, $secretkey)) {
+			$this->close();
+			throw new Exception(sprintf("Failed to authenticate (%s)", $this->lastResponse));
 		}
 	}
 
