@@ -98,7 +98,7 @@ class SmtpClient
 		/**
 		 * Utilisation de la commande STARTTLS pour sécuriser la connexion.
 		 * Ignoré si la connexion est sécurisée en utilisant un des préfixes de
-		 * transport ssl ou tls supportés par PHP.
+		 * transport tls supportés par PHP.
 		 * Si laissé à null, STARTTLS est automatiquement utilisé si le port
 		 * de connexion est 587.
 		 *
@@ -211,7 +211,7 @@ class SmtpClient
 		'port'      => 0,
 		// Annonce de présentation du serveur
 		'greeting'  => '',
-		// true si la connexion est chiffrée avec SSL/TLS
+		// true si la connexion est chiffrée avec TLS
 		'encrypted' => false,
 		// true si le certificat a été vérifié
 		'trusted'   => false,
@@ -347,13 +347,13 @@ class SmtpClient
 		}
 
 		$proto = substr($url['scheme'], 0, 3);
-		$useSSL   = ($proto == 'ssl' || $proto == 'tls');
-		$startTLS = (!$useSSL) ? $this->opts['starttls'] : false;
+		$useTLS   = ($proto == 'tls');
+		$startTLS = (!$useTLS) ? $this->opts['starttls'] : false;
 
 		// Attribution du port par défaut si besoin
 		if (empty($url['port'])) {
 			$url['port'] = 25;
-			if ($useSSL) {
+			if ($useTLS) {
 				$url['port'] = 465;// SMTPS
 			}
 			else if ($startTLS) {
@@ -369,8 +369,8 @@ class SmtpClient
 				$startTLS = true;
 			}
 		}
-		else if ($useSSL || $startTLS) {
-			throw new Exception("Cannot use SSL/TLS because the openssl extension is not available!");
+		else if ($useTLS || $startTLS) {
+			throw new Exception("Cannot use TLS because the openssl extension is not available!");
 		}
 
 		//
@@ -419,7 +419,7 @@ class SmtpClient
 		$infos['host']      = $url['host'];
 		$infos['port']      = $url['port'];
 		$infos['greeting']  = $greeting;
-		$infos['encrypted'] = ($useSSL || $startTLS);
+		$infos['encrypted'] = ($useTLS || $startTLS);
 		$infos['trusted']   = ($infos['encrypted'] && PHP_VERSION_ID >= 50600);
 		$infos['context']   = $context;
 
