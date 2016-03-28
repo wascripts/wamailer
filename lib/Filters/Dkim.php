@@ -21,7 +21,7 @@ class Dkim
 	 * @var array
 	 */
 	protected $opts = array(
-		'pkey'       => null,
+		'privkey'    => null,
 		'passphrase' => null,
 		'domain'     => null, // Alias pour le tag DKIM 'd'
 		'selector'   => null, // Alias pour le tag DKIM 's'
@@ -92,16 +92,6 @@ class Dkim
 
 		$this->opts = array_replace_recursive($this->opts, $opts);
 
-		if (!empty($this->opts['pkey']) && !is_resource($this->opts['pkey'])) {
-			$pkey = trim($this->opts['pkey']);
-
-			if (strpos($pkey, '-----BEGIN') !== 0 && strpos($pkey, 'file://') === false) {
-				$pkey = 'file://'.$pkey;
-			}
-
-			$this->opts['pkey'] = openssl_pkey_get_private($pkey, $this->opts['passphrase']);
-		}
-
 		return $this->opts;
 	}
 
@@ -171,6 +161,11 @@ class Dkim
 	 */
 	public function sign($headers, $body)
 	{
+		// Récupération de la clé
+		if (!($privkey = $this->getPrivKey())) {
+			return '';
+		}
+
 		// Formats canonique
 		$headers_c = $this->tags['c'];
 		$body_c    = 'simple';
@@ -220,10 +215,18 @@ class Dkim
 		$headers_to_sign .= $this->canonicalizeHeader($dkim_header, $headers_c);
 
 		// Génération de la signature proprement dite par OpenSSL.
-		openssl_sign($headers_to_sign, $signature, $this->opts['pkey'], $hash_algo);
+		$result = openssl_sign($headers_to_sign, $signature, $privkey, $hash_algo);
+		if (!$result) {
+			trigger_error(sprintf("Could not sign mail. (OpenSSL said: %s)",
+				openssl_error_string()),
+				E_USER_WARNING
+			);
+			return '';
+		}
 
 		// On ajoute la signature à l’en-tête dkim
 		$dkim_header .= rtrim(chunk_split(base64_encode($signature), 75, "\r\n\t"));
+		$dkim_header .= "\r\n";
 
 		return $dkim_header;
 	}
@@ -280,5 +283,44 @@ class Dkim
 		}
 
 		return $body;
+	}
+
+	/**
+	 * Teste la disponibilité d’OpenSSL et retourne la clé privée.
+	 *
+	 * @return resource
+	 */
+	protected function getPrivKey()
+	{
+		// On ne peut rien faire sans OpenSSL
+		if (!function_exists('openssl_pkey_get_private')) {
+			trigger_error("Cannot sign mail because the openssl extension is not available!", E_USER_WARNING);
+			return null;
+		}
+
+		$privkey = $this->opts['privkey'];
+
+		// Pas de clé, ou bien la tentative de lecture précédente a échoué.
+		if (is_null($privkey)) {
+			return null;
+		}
+
+		if (!is_resource($privkey)) {
+			if (strpos($privkey, '-----BEGIN') === false && strpos($privkey, 'file://') === false) {
+				$privkey = 'file://'.$privkey;
+			}
+
+			if (!($privkey = openssl_pkey_get_private($privkey, $this->opts['passphrase']))) {
+				trigger_error(sprintf("Could not read private key. (OpenSSL said: %s)",
+					openssl_error_string()),
+					E_USER_WARNING
+				);
+				$privkey = null;
+			}
+
+			$this->opts['privkey'] = $privkey;
+		}
+
+		return $privkey;
 	}
 }
