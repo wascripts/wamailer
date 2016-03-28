@@ -201,6 +201,7 @@ class Dkim
 				$headers_to_sign[$name] = $this->canonicalizeHeader($header, $headers_c);
 			}
 		}
+		$headers_to_sign = array_filter($headers_to_sign);
 
 		// Création de l’en-tête DKIM et ajout au bloc d’en-têtes à signer
 		$dkim_header = 'DKIM-Signature: ';
