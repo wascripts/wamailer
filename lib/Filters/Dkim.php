@@ -59,12 +59,7 @@ class Dkim
 		}
 
 		if (isset($opts['tag-c'])) {
-			$canonicalization = $opts['tag-c'];
-			if (!strpos($canonicalization, '/')) {
-				$canonicalization .= '/simple';
-			}
-
-			foreach (explode('/', $canonicalization, 2) as $c_val) {
+			foreach (explode('/', $opts['tag-c'], 2) as $c_val) {
 				if ($c_val != 'relaxed' && $c_val != 'simple') {
 					trigger_error("Incorrect value for dkim tag 'c'.", E_USER_WARNING);
 					unset($opts['tag-c']);
@@ -113,7 +108,13 @@ class Dkim
 	public function sign($headers, $body)
 	{
 		// Formats canonique
-		list($headers_c, $body_c) = explode('/', $this->opts['tag-c']);
+		$headers_c = $this->opts['tag-c'];
+		$body_c    = 'simple';
+
+		if (strpos($this->opts['tag-c'], '/')) {
+			list($headers_c, $body_c) = explode('/', $this->opts['tag-c']);
+		}
+
 		// Algorithmes de chiffrement et de hashage
 		list($crypt_algo, $hash_algo) = explode('-', $this->opts['tag-a']);
 
