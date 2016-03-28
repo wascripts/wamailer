@@ -16,20 +16,36 @@ namespace Wamailer\Filters;
 class Dkim
 {
 	/**
-	 * Tableau d’options pour ce filtre.
+	 * Tableau d’options par défaut.
 	 *
 	 * @var array
 	 */
 	protected $opts = array(
 		'pkey'       => null,
 		'passphrase' => null,
-		// Paramètres DKIM
-		'tag-a' => 'rsa-sha256',
-		'tag-c' => 'relaxed/relaxed',
-		'tag-q' => 'dns/txt',
-		'tag-d' => null,
-		'tag-s' => null,
-		'tag-h' => 'from:to:subject:date',
+		'domain'     => null, // Alias pour le tag DKIM 'd'
+		'selector'   => null, // Alias pour le tag DKIM 's'
+	);
+
+	/**
+	 * Paramètres DKIM par défaut.
+	 * Les tags DKIM peuvent être ajoutés avec la méthode self::setTag().
+	 * Exemple :
+	 * $dkim->setTag('c', 'relaxed/relaxed');
+	 * Ils peuvent aussi être ajoutés par la méthode self::options(),
+	 * et donc aussi directement dans le tableau transmis au constructeur.
+	 *
+	 * @var array
+	 */
+	private $tags = array(
+		'v' => 1,
+		'a' => 'rsa-sha256',
+		'c' => 'relaxed/relaxed',
+		'q' => 'dns/txt',
+		'd' => null,
+		's' => null,
+		't' => null,
+		'h' => 'from:to:subject:date',
 	);
 
 	/**
@@ -41,7 +57,14 @@ class Dkim
 	}
 
 	/**
-	 * Définition des options supplémentaires pour ce transport.
+	 * Définition d’options supplémentaires.
+	 *
+	 * Les tags DKIM peuvent être transmis par cette méthode en les
+	 * préfixant avec 'tag:'. Exemple :
+	 * $dkim->options(['tag:c' => 'relaxed/relaxed']);
+	 *
+	 * Ainsi, les tags sont aussi transmissibles directement avec
+	 * le tableau d’options fourni au constructeur.
 	 *
 	 * @param array $opts
 	 *
@@ -51,35 +74,20 @@ class Dkim
 	{
 		// Alias pour une meilleure lisibilité.
 		if (isset($opts['domain'])) {
-			$opts['tag-d'] = $opts['domain'];
+			$opts['tag:d'] = $opts['domain'];
 		}
 
 		if (isset($opts['selector'])) {
-			$opts['tag-s'] = $opts['selector'];
+			$opts['tag:s'] = $opts['selector'];
 		}
 
-		if (isset($opts['tag-c'])) {
-			foreach (explode('/', $opts['tag-c'], 2) as $c_val) {
-				if ($c_val != 'relaxed' && $c_val != 'simple') {
-					trigger_error("Incorrect value for dkim tag 'c'.", E_USER_WARNING);
-					unset($opts['tag-c']);
-					break;
-				}
+		foreach ($opts as $key => $value) {
+			if (strncmp($key, 'tag:', 4) !== 0) {
+				continue;
 			}
-		}
 
-		if (isset($opts['tag-a'])) {
-			if (!preg_match('#^[a-z][a-z0-9]*-[a-z][a-z0-9]*#i', $opts['tag-a'])) {
-				trigger_error("Incorrect value for dkim tag 'a'.", E_USER_WARNING);
-				unset($opts['tag-a']);
-			}
-		}
-
-		if (isset($opts['tag-h'])) {
-			if (!$opts['tag-h']) {
-				trigger_error("Incorrect value for dkim tag 'h'. Must not be empty.", E_USER_WARNING);
-				unset($opts['tag-h']);
-			}
+			$this->setTag(substr($key, 4), $value);
+			unset($opts[$key]);
 		}
 
 		$this->opts = array_replace_recursive($this->opts, $opts);
@@ -98,6 +106,62 @@ class Dkim
 	}
 
 	/**
+	 * Tests sur le nom du tag DKIM et sa valeur, puis ajout/modification
+	 * dans le tableau $tags.
+	 *
+	 * @see RFC 4871#3.2 - Tag=Value Lists
+	 *
+	 * @param string $tagname
+	 * @param string $tagval
+	 *
+	 * @return boolean
+	 */
+	public function setTag($tagname, $tagval)
+	{
+		if (!preg_match('#^[a-z][a-z0-9_]*$#i', $tagname)) {
+			trigger_error("Invalid dkim tag name '$tagname', according to RFC 4871.", E_USER_WARNING);
+			return false;
+		}
+
+		$tagval = trim($tagval);
+
+		if ($tagname == 'c') {
+			foreach (explode('/', $tagval, 2) as $c_val) {
+				if ($c_val != 'relaxed' && $c_val != 'simple') {
+					trigger_error("Incorrect value for dkim tag 'c'."
+						. "Acceptable values are 'relaxed' or 'simple',"
+						. "or a combination of both, separated by a slash.", E_USER_WARNING);
+					return false;
+				}
+			}
+		}
+
+		if ($tagname == 'a') {
+			if (!preg_match('#^[a-z][a-z0-9]*-[a-z][a-z0-9]*$#i', $tagval)) {
+				trigger_error("Incorrect value for dkim tag 'a'.", E_USER_WARNING);
+				return false;
+			}
+		}
+
+		if ($tagname == 'h') {
+			if (!$tagval) {
+				trigger_error("Incorrect value for dkim tag 'h'. Must not be empty.", E_USER_WARNING);
+				return false;
+			}
+		}
+
+		// Test générique de la valeur du tag
+		if (!preg_match('#^[\x21-\x3A\x3C-\x7E\s]*$#', $tagval)) {
+			trigger_error("Invalid value for dkim tag '$tagname', according to RFC 4871.", E_USER_WARNING);
+			return false;
+		}
+
+		$this->tags[$tagname] = $tagval;
+
+		return true;
+	}
+
+	/**
 	 * Génération de l'en-tête DKIM-Signature
 	 *
 	 * @param string $headers
@@ -108,15 +172,15 @@ class Dkim
 	public function sign($headers, $body)
 	{
 		// Formats canonique
-		$headers_c = $this->opts['tag-c'];
+		$headers_c = $this->tags['c'];
 		$body_c    = 'simple';
 
-		if (strpos($this->opts['tag-c'], '/')) {
-			list($headers_c, $body_c) = explode('/', $this->opts['tag-c']);
+		if (strpos($this->tags['c'], '/')) {
+			list($headers_c, $body_c) = explode('/', $this->tags['c']);
 		}
 
 		// Algorithmes de chiffrement et de hashage
-		list($crypt_algo, $hash_algo) = explode('-', $this->opts['tag-a']);
+		list($crypt_algo, $hash_algo) = explode('-', $this->tags['a']);
 
 		// Canonicalisation et hashage du corps du mail avec les
 		// paramètres spécifiés
@@ -125,14 +189,8 @@ class Dkim
 		$body = rtrim(chunk_split($body, 74, "\r\n\t"));
 
 		// Définition des tags DKIM
-		$dkim_tags['v']  = 1;
-		$dkim_tags['a']  = $this->opts['tag-a'];
-		$dkim_tags['c']  = $this->opts['tag-c'];
-		$dkim_tags['d']  = $this->opts['tag-d'];
-		$dkim_tags['s']  = $this->opts['tag-s'];
-		$dkim_tags['q']  = $this->opts['tag-q'];
+		$dkim_tags = $this->tags;
 		$dkim_tags['t']  = time();
-		$dkim_tags['h']  = $this->opts['tag-h'];
 		$dkim_tags['bh'] = $body;
 
 		// On ne garde que les en-têtes à signer
