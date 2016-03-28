@@ -194,16 +194,20 @@ class Dkim
 		$dkim_tags['bh'] = $body;
 
 		// On ne garde que les en-têtes à signer
-		$headers_to_sign = explode(':', $dkim_tags['h']);
+		$headers_to_sign = explode(':', strtolower($dkim_tags['h']));
+		$headers_to_sign = array_map('trim', $headers_to_sign);
+		$headers_to_sign = array_fill_keys($headers_to_sign, '');
 
 		$headers = preg_split('#\r\n(?![\t ])#', rtrim($headers));
-		$headers = array_filter($headers, function ($header) use ($headers_to_sign) {
-			$name = substr($header, 0, strpos($header, ':'));
-			return in_array(strtolower($name), $headers_to_sign);
-		});
-		$headers = implode("\r\n", $headers);
+		foreach ($headers as $header) {
+			$name = strtolower(substr($header, 0, strpos($header, ':')));
 
-		// Création de l'en-tête DKIM
+			if (isset($headers_to_sign[$name])) {
+				$headers_to_sign[$name] = $this->canonicalizeHeader($header, $headers_c);
+			}
+		}
+
+		// Création de l’en-tête DKIM et ajout au bloc d’en-têtes à signer
 		$dkim_header = 'DKIM-Signature: ';
 		foreach ($dkim_tags as $name => $value) {
 			$dkim_header .= "$name=$value; ";
@@ -211,47 +215,50 @@ class Dkim
 		$dkim_header  = rtrim(wordwrap($dkim_header, 77, "\r\n\t"));
 		$dkim_header .= "\r\n\tb=";
 
-		// Canonicalisation des en-têtes à signer, et génération de la
-		// signature proprement dite par OpenSSL.
-		$headers = $this->canonicalizeHeaders($headers."\r\n".$dkim_header, $headers_c);
-		openssl_sign($headers, $signature, $this->opts['pkey'], $hash_algo);
+		$headers_to_sign  = implode("\r\n", $headers_to_sign);
+		$headers_to_sign .= "\r\n";
+		$headers_to_sign .= $this->canonicalizeHeader($dkim_header, $headers_c);
 
+		// Génération de la signature proprement dite par OpenSSL.
+		openssl_sign($headers_to_sign, $signature, $this->opts['pkey'], $hash_algo);
+
+		// On ajoute la signature à l’en-tête dkim
 		$dkim_header .= rtrim(chunk_split(base64_encode($signature), 75, "\r\n\t"));
 
 		return $dkim_header;
 	}
 
 	/**
-	 * Transformation du bloc d’en-têtes dans le format canonique spécifié.
+	 * Transformation de l’en-tête dans le format canonique spécifié.
 	 * Seul le format 'relaxed' apporte des changements dans le cas des
 	 * en-têtes.
 	 *
-	 * @param string $headers
+	 * @see RFC 4871#3.4 - Canonicalization
+	 *
+	 * @param string $header
 	 * @param string $canonicalization
 	 *
 	 * @return string
 	 */
-	protected function canonicalizeHeaders($headers, $canonicalization = 'simple')
+	protected function canonicalizeHeader($header, $canonicalization = 'simple')
 	{
 		if ($canonicalization == 'simple') {
-			return $headers;
+			return $header;
 		}
 
-		$headers = preg_split('#\r\n(?![\t ])#', $headers);
-		foreach ($headers as &$header) {
-			list($name, $value) = explode(':', $header, 2);
+		list($name, $value) = explode(':', $header, 2);
 
-			$name   = strtolower($name);
-			$value  = trim(preg_replace('#\s+#', ' ', $value));
-			$header = "$name:$value";
-		}
-		$headers = implode("\r\n", $headers);
+		$name   = strtolower($name);
+		$value  = trim(preg_replace('#\s+#', ' ', $value));
+		$header = "$name:$value";
 
-		return $headers;
+		return $header;
 	}
 
 	/**
 	 * Transformation du message dans le format canonique spécifié.
+	 *
+	 * @see RFC 4871#3.4 - Canonicalization
 	 *
 	 * @param string $body
 	 * @param string $canonicalization
