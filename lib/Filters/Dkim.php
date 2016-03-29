@@ -115,40 +115,52 @@ class Dkim
 
 		$tagval = trim($tagval);
 
-		if ($tagname == 'c') {
-			foreach (explode('/', $tagval, 2) as $c_val) {
-				if ($c_val != 'relaxed' && $c_val != 'simple') {
-					trigger_error("Incorrect value for dkim tag 'c'."
-						. "Acceptable values are 'relaxed' or 'simple',"
-						. "or a combination of both, separated by a slash.", E_USER_WARNING);
-					return false;
+		switch ($tagname) {
+			case 'v':
+				trigger_error("The value for dkim tag 'v' is not settable.", E_USER_NOTICE);
+				$tagval = null;
+				break;
+			case 'c':
+				foreach (explode('/', $tagval, 2) as $c_val) {
+					if ($c_val != 'relaxed' && $c_val != 'simple') {
+						trigger_error("Incorrect value for dkim tag 'c'."
+							. "Acceptable values are 'relaxed' or 'simple',"
+							. "or a combination of both, separated by a slash.", E_USER_WARNING);
+						$tagval = null;
+						break;
+					}
 				}
-			}
+				break;
+			case 'a':
+				if (!preg_match('#^[a-z][a-z0-9]*-[a-z][a-z0-9]*$#i', $tagval)) {
+					trigger_error("Incorrect value for dkim tag 'a'.", E_USER_WARNING);
+					$tagval = null;
+				}
+				break;
+			case 't':
+			case 'x':
+				try {
+					new \DateTime('@' . $tagval);
+				}
+				catch(\Exception $e) {
+					trigger_error("Invalid timestamp value for dkim tag '$tagname'.", E_USER_WARNING);
+					$tagval = null;
+				}
+				break;
+			default:
+				if (!preg_match('#^[\x21-\x3A\x3C-\x7E\s]*$#', $tagval)) {
+					trigger_error("Invalid value for dkim tag '$tagname', according to RFC 4871.", E_USER_WARNING);
+					$tagval = null;
+				}
+				break;
 		}
 
-		if ($tagname == 'a') {
-			if (!preg_match('#^[a-z][a-z0-9]*-[a-z][a-z0-9]*$#i', $tagval)) {
-				trigger_error("Incorrect value for dkim tag 'a'.", E_USER_WARNING);
-				return false;
-			}
+		if (!is_null($tagval)) {
+			$this->tags[$tagname] = $tagval;
+			return true;
 		}
 
-		if ($tagname == 'h') {
-			if (!$tagval) {
-				trigger_error("Incorrect value for dkim tag 'h'. Must not be empty.", E_USER_WARNING);
-				return false;
-			}
-		}
-
-		// Test générique de la valeur du tag
-		if (!preg_match('#^[\x21-\x3A\x3C-\x7E\s]*$#', $tagval)) {
-			trigger_error("Invalid value for dkim tag '$tagname', according to RFC 4871.", E_USER_WARNING);
-			return false;
-		}
-
-		$this->tags[$tagname] = $tagval;
-
-		return true;
+		return false;
 	}
 
 	/**
@@ -206,6 +218,12 @@ class Dkim
 		foreach ($headers as $header) {
 			$name = trim(strtolower(strtok($header, ':')));
 			$headers[$name][] = $header;
+		}
+
+		// Il doit y avoir un en-tête 'From' à signer.
+		if (!in_array('from', $headers_to_sign) || !isset($headers['from'])) {
+			trigger_error("Cannot sign mail without 'from' in tag 'h' or message headers", E_USER_WARNING);
+			return '';
 		}
 
 		$unsigned_headers = '';
