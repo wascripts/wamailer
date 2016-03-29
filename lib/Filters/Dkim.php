@@ -185,8 +185,11 @@ class Dkim
 
 		// Définition des tags DKIM et création de l’en-tête DKIM-Signature
 		$dkim_tags = $this->tags;
-		$dkim_tags['t']  = time();
 		$dkim_tags['bh'] = $body;
+
+		if (!$dkim_tags['t']) {
+			$dkim_tags['t'] = time();
+		}
 
 		$dkim_header = 'DKIM-Signature: ';
 		foreach ($dkim_tags as $name => $value) {
