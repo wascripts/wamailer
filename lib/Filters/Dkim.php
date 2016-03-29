@@ -59,11 +59,13 @@ class Dkim
 	/**
 	 * Définition d’options supplémentaires.
 	 *
-	 * Les tags DKIM peuvent être transmis par cette méthode en les
-	 * préfixant avec 'tag:'. Exemple :
-	 * $dkim->options(['tag:c' => 'relaxed/relaxed']);
+	 * Les tags DKIM peuvent être transmis par cette méthode en utilisant
+	 * l’entrée 'tags'. Exemple :
+	 * $tags['c'] = 'relaxed/relaxed';
+	 * $tags['h'] = 'from:to:subject:myheader';
+	 * $dkim->options(['tags' => $tags]);
 	 *
-	 * Ainsi, les tags sont aussi transmissibles directement avec
+	 * Les tags sont donc aussi transmissibles directement avec
 	 * le tableau d’options fourni au constructeur.
 	 *
 	 * @param array $opts
@@ -72,22 +74,19 @@ class Dkim
 	 */
 	public function options(array $opts = array())
 	{
-		// Alias pour une meilleure lisibilité.
 		if (isset($opts['domain'])) {
-			$opts['tag:d'] = $opts['domain'];
+			$opts['tags']['d'] = $opts['domain'];
 		}
 
 		if (isset($opts['selector'])) {
-			$opts['tag:s'] = $opts['selector'];
+			$opts['tags']['s'] = $opts['selector'];
 		}
 
-		foreach ($opts as $key => $value) {
-			if (strncmp($key, 'tag:', 4) !== 0) {
-				continue;
+		if (isset($opts['tags']) && is_array($opts['tags'])) {
+			foreach ($opts['tags'] as $tagname => $tagval) {
+				$this->setTag($tagname, $tagval);
 			}
-
-			$this->setTag(substr($key, 4), $value);
-			unset($opts[$key]);
+			unset($opts['tags']);
 		}
 
 		$this->opts = array_replace_recursive($this->opts, $opts);
