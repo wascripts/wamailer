@@ -45,7 +45,7 @@ class Dkim
 		'd' => null,
 		's' => null,
 		't' => null,
-		'h' => 'from:to:subject:date',
+		'h' => 'from:to:subject',
 	);
 
 	/**
