@@ -12,7 +12,7 @@ Not stable/bugs:
  * Need to transform LF into CRLF before calling `Dkim::sign()`
  * Errors handling : `Dkim::sign()` may throws exception in future (not sure)
  * DKIM tags with non ascii characters are not accepted (should be, but turned into DKIM QP format) (rfc 4871#2.6)
- * Cannot actually sign multiple instances of a header (rfc 4871#5.4)
+
 
 Standalone example
 -------------------

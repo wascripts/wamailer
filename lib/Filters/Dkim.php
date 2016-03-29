@@ -183,27 +183,11 @@ class Dkim
 		$body = base64_encode(hash($hash_algo, $body, true));
 		$body = rtrim(chunk_split($body, 74, "\r\n\t"));
 
-		// Définition des tags DKIM
+		// Définition des tags DKIM et création de l’en-tête DKIM-Signature
 		$dkim_tags = $this->tags;
 		$dkim_tags['t']  = time();
 		$dkim_tags['bh'] = $body;
 
-		// On ne garde que les en-têtes à signer
-		$headers_to_sign = explode(':', strtolower($dkim_tags['h']));
-		$headers_to_sign = array_map('trim', $headers_to_sign);
-		$headers_to_sign = array_fill_keys($headers_to_sign, '');
-
-		$headers = preg_split('#\r\n(?![\t ])#', rtrim($headers));
-		foreach ($headers as $header) {
-			$name = strtolower(substr($header, 0, strpos($header, ':')));
-
-			if (isset($headers_to_sign[$name])) {
-				$headers_to_sign[$name] = $this->canonicalizeHeader($header, $headers_c);
-			}
-		}
-		$headers_to_sign = array_filter($headers_to_sign);
-
-		// Création de l’en-tête DKIM et ajout au bloc d’en-têtes à signer
 		$dkim_header = 'DKIM-Signature: ';
 		foreach ($dkim_tags as $name => $value) {
 			$dkim_header .= "$name=$value; ";
@@ -211,12 +195,34 @@ class Dkim
 		$dkim_header  = rtrim(wordwrap($dkim_header, 77, "\r\n\t"));
 		$dkim_header .= "\r\n\tb=";
 
-		$headers_to_sign  = implode("\r\n", $headers_to_sign);
-		$headers_to_sign .= "\r\n";
-		$headers_to_sign .= $this->canonicalizeHeader($dkim_header, $headers_c);
+		// On récupère les en-têtes à signer.
+		$headers_to_sign = explode(':', strtolower($dkim_tags['h']));
+		$headers_to_sign = array_map('trim', $headers_to_sign);
+
+		$headers = preg_split('#\r\n(?![\t ])#', rtrim($headers));
+		foreach ($headers as $header) {
+			$name = trim(strtolower(strtok($header, ':')));
+			$headers[$name][] = $header;
+		}
+
+		$unsigned_headers = '';
+		foreach ($headers_to_sign as $name) {
+			if (!empty($headers[$name])) {
+				/**
+				 * Si on signe plusieurs en-têtes de même nom, il faut
+				 * les signer dans l’ordre inverse d’occurence.
+				 * @see RFC 4871#5.4 - Determine the Header Fields to Sign
+				 */
+				$header = array_pop($headers[$name]);
+				$unsigned_headers .= $this->canonicalizeHeader($header, $headers_c);
+				$unsigned_headers .= "\r\n";
+			}
+		}
+
+		$unsigned_headers .= $this->canonicalizeHeader($dkim_header, $headers_c);
 
 		// Génération de la signature proprement dite par OpenSSL.
-		$result = openssl_sign($headers_to_sign, $signature, $privkey, $hash_algo);
+		$result = openssl_sign($unsigned_headers, $signature, $privkey, $hash_algo);
 		if (!$result) {
 			trigger_error(sprintf("Could not sign mail. (OpenSSL said: %s)",
 				openssl_error_string()),
