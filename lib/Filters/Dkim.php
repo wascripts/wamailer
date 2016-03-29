@@ -194,20 +194,26 @@ class Dkim
 		// Algorithmes de chiffrement et de hashage
 		list($crypt_algo, $hash_algo) = explode('-', $this->tags['a']);
 
+		// Définition des tags DKIM
+		$dkim_tags = $this->tags;
+
+		if (!isset($dkim_tags['t'])) {
+			$dkim_tags['t'] = time();
+		}
+
+		if (isset($dkim_tags['x']) && $dkim_tags['x'] <= $dkim_tags['t']) {
+			trigger_error("The value of the 'x' tag MUST be greater than the value of the 't' tag.", E_USER_NOTICE);
+			unset($dkim_tags['x'], $this->tags['x']);
+		}
+
 		// Canonicalisation et hashage du corps du mail avec les
 		// paramètres spécifiés
 		$body = $this->canonicalizeBody($body, $body_c);
 		$body = base64_encode(hash($hash_algo, $body, true));
 		$body = rtrim(chunk_split($body, 74, "\r\n\t"));
-
-		// Définition des tags DKIM et création de l’en-tête DKIM-Signature
-		$dkim_tags = $this->tags;
 		$dkim_tags['bh'] = $body;
 
-		if (!$dkim_tags['t']) {
-			$dkim_tags['t'] = time();
-		}
-
+		// création de l’en-tête DKIM-Signature
 		$dkim_header = 'DKIM-Signature: ';
 		foreach ($dkim_tags as $name => $value) {
 			$dkim_header .= "$name=$value; ";
