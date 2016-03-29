@@ -92,6 +92,11 @@ class Dkim
 
 		$this->opts = array_replace_recursive($this->opts, $opts);
 
+		// Le but ici est de forcer la lecture de la clé privée le plus
+		// tôt possible et éviter de conserver la clé au format PEM
+		// et l’éventuel passphrase dans le tableau d’options.
+		$this->getPrivKey();
+
 		return $this->opts;
 	}
 
@@ -320,33 +325,29 @@ class Dkim
 	 */
 	protected function getPrivKey()
 	{
-		// On ne peut rien faire sans OpenSSL
-		if (!function_exists('openssl_pkey_get_private')) {
-			trigger_error("Cannot sign mail because the openssl extension is not available!", E_USER_WARNING);
-			return null;
-		}
+		$privkey =& $this->opts['privkey'];
 
-		$privkey = $this->opts['privkey'];
-
-		// Pas de clé, ou bien la tentative de lecture précédente a échoué.
-		if (is_null($privkey)) {
-			return null;
-		}
-
-		if (!is_resource($privkey)) {
+		if (!is_null($privkey) && !is_resource($privkey)) {
+			$privkey = trim($privkey);
 			if (strpos($privkey, '-----BEGIN') === false && strpos($privkey, 'file://') === false) {
 				$privkey = 'file://'.$privkey;
 			}
 
-			if (!($privkey = openssl_pkey_get_private($privkey, $this->opts['passphrase']))) {
-				trigger_error(sprintf("Could not read private key. (OpenSSL said: %s)",
+			if (!function_exists('openssl_pkey_get_private')) {
+				trigger_error("Cannot sign mail because the openssl extension is not available!", E_USER_WARNING);
+			}
+			else if (!($privkey = openssl_pkey_get_private($privkey, $this->opts['passphrase']))) {
+				trigger_error(sprintf("Cannot read private key. (OpenSSL said: %s)",
 					openssl_error_string()),
 					E_USER_WARNING
 				);
-				$privkey = null;
 			}
 
-			$this->opts['privkey'] = $privkey;
+			$this->opts['passphrase'] = null;
+
+			if (!is_resource($privkey)) {
+				$privkey = null;
+			}
 		}
 
 		return $privkey;
