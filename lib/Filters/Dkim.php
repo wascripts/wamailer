@@ -40,7 +40,7 @@ class Dkim
 	private $tags = array(
 		'v' => 1,
 		'a' => 'rsa-sha256',
-		'c' => 'relaxed/relaxed',
+		'c' => 'relaxed',
 		'q' => 'dns/txt',
 		'd' => null,
 		's' => null,
