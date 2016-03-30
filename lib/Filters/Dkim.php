@@ -152,9 +152,8 @@ class Dkim
 				}
 				break;
 			default:
-				if (!preg_match('#^[\x21-\x3A\x3C-\x7E\s]*$#', $tagval)) {
-					trigger_error("Invalid value for dkim tag '$tagname', according to RFC 4871.", E_USER_WARNING);
-					$tagval = null;
+				if (preg_match('#[^\x21-\x3A\x3C-\x7E\s]#', $tagval)) {
+					$tagval = $this->encodeQuotedPrintable($tagval);
 				}
 				break;
 		}
@@ -356,5 +355,27 @@ class Dkim
 		}
 
 		return $privkey;
+	}
+
+	/**
+	 * Encodage "Quoted Printable" à la sauce DKIM.
+	 *
+	 * @see RFC 4871#2.6 - DKIM-Quoted-Printable
+	 *
+	 * @param string $str
+	 * @param string $charlist Caractères additionnels à encoder
+	 *
+	 * @return string
+	 */
+	public function encodeQuotedPrintable($str, $charlist = '')
+	{
+		$charlist = preg_quote(preg_replace('/[0-9A-F=]/', '', $charlist), '#');
+		$str = quoted_printable_encode($str);
+		$str = str_replace("=\r\n", '', $str);// Remove soft line break
+		$str = preg_replace_callback("#[\s;$charlist]#", function ($m) {
+			return sprintf('=%02X', ord($m[0]));
+		}, $str);
+
+		return $str;
 	}
 }
