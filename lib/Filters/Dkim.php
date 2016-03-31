@@ -45,7 +45,6 @@ class Dkim
 		'q' => 'dns/txt',
 		'd' => null,
 		's' => null,
-		't' => null,
 		'h' => 'from:to:subject',
 	);
 
@@ -54,6 +53,9 @@ class Dkim
 	 */
 	public function __construct(array $opts = array())
 	{
+		$this->tags['t'] = time();
+		$this->tags['x'] = -1;
+
 		$this->options($opts);
 	}
 
@@ -118,7 +120,9 @@ class Dkim
 			return false;
 		}
 
-		$tagval = trim($tagval);
+		if (!is_scalar($tagval)) {
+			$tagval = null;
+		}
 
 		switch ($tagname) {
 			case 'v':
@@ -197,13 +201,8 @@ class Dkim
 		// Définition des tags DKIM
 		$dkim_tags = $this->tags;
 
-		if (!isset($dkim_tags['t'])) {
-			$dkim_tags['t'] = time();
-		}
-
-		if (isset($dkim_tags['x']) && $dkim_tags['x'] <= $dkim_tags['t']) {
-			trigger_error("The value of the 'x' tag MUST be greater than the value of the 't' tag.", E_USER_NOTICE);
-			unset($dkim_tags['x'], $this->tags['x']);
+		if ($dkim_tags['x'] <= $dkim_tags['t']) {
+			unset($dkim_tags['x']);
 		}
 
 		// On récupère les en-têtes à signer.
