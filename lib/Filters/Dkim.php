@@ -183,10 +183,12 @@ class Dkim
 	 *
 	 * @param string $headers
 	 * @param string $body
+	 * @param string $to
+	 * @param string $subject
 	 *
 	 * @return string
 	 */
-	public function sign($headers, $body)
+	public function sign($headers, $body, $to = '', $subject = '')
 	{
 		// Récupération de la clé
 		if (!($privkey = $this->getPrivKey())) {
@@ -220,6 +222,14 @@ class Dkim
 		foreach ($headers as $header) {
 			$name = trim(strtolower(strtok($header, ':')));
 			$headers[$name][] = $header;
+		}
+
+		if ($to) {
+			$headers['to'][] = "To: $to";
+		}
+
+		if ($subject) {
+			$headers['subject'][] = "Subject: $subject";
 		}
 
 		if (!in_array('from', $headers_to_sign) || !isset($headers['from'])) {
