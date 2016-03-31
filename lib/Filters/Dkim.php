@@ -25,6 +25,7 @@ class Dkim
 		'passphrase' => null,
 		'domain'     => null, // Alias pour le tag DKIM 'd'
 		'selector'   => null, // Alias pour le tag DKIM 's'
+		'debug'      => false,// Pour ajouter le tag DKIM 'z'
 	);
 
 	/**
@@ -121,7 +122,8 @@ class Dkim
 
 		switch ($tagname) {
 			case 'v':
-				trigger_error("The value for dkim tag 'v' is not settable.", E_USER_NOTICE);
+			case 'z':
+				trigger_error("The value for dkim tag '$tagname' is not settable.", E_USER_NOTICE);
 				$tagval = null;
 				break;
 			case 'c':
@@ -204,6 +206,41 @@ class Dkim
 			unset($dkim_tags['x'], $this->tags['x']);
 		}
 
+		// On récupère les en-têtes à signer.
+		// (RFC 4871#5.4 - Determine the Header Fields to Sign)
+		$headers_to_sign = explode(':', strtolower($dkim_tags['h']));
+		$headers_to_sign = array_map('trim', $headers_to_sign);
+
+		$headers = preg_split('#\r\n(?![\t ])#', rtrim($headers));
+		foreach ($headers as $header) {
+			$name = trim(strtolower(strtok($header, ':')));
+			$headers[$name][] = $header;
+		}
+
+		if (!in_array('from', $headers_to_sign) || !isset($headers['from'])) {
+			trigger_error("Cannot sign mail without 'from' in tag 'h' or message headers", E_USER_WARNING);
+			return '';
+		}
+
+		$unsigned_headers = '';
+		foreach ($headers_to_sign as $name) {
+			if (!empty($headers[$name])) {
+				// Les en-têtes à multiples occurences doivent être signés
+				// dans l’ordre inverse d’apparition.
+				$header = array_pop($headers[$name]);
+				$header = $this->canonicalizeHeader($header, $headers_c);
+				$unsigned_headers .= $header . "\r\n";
+
+				if ($this->opts['debug']) {
+					$dkim_tags['z'][] = $this->encodeQuotedPrintable($header, '|');
+				}
+			}
+		}
+
+		if ($this->opts['debug']) {
+			$dkim_tags['z'] = implode('|', $dkim_tags['z']);
+		}
+
 		// Canonicalisation et hashage du corps du mail avec les
 		// paramètres spécifiés
 		$body = $this->canonicalizeBody($body, $body_c);
@@ -218,36 +255,6 @@ class Dkim
 		}
 		$dkim_header  = rtrim(wordwrap($dkim_header, 77, "\r\n\t"));
 		$dkim_header .= "\r\n\tb=";
-
-		// On récupère les en-têtes à signer.
-		$headers_to_sign = explode(':', strtolower($dkim_tags['h']));
-		$headers_to_sign = array_map('trim', $headers_to_sign);
-
-		$headers = preg_split('#\r\n(?![\t ])#', rtrim($headers));
-		foreach ($headers as $header) {
-			$name = trim(strtolower(strtok($header, ':')));
-			$headers[$name][] = $header;
-		}
-
-		// Il doit y avoir un en-tête 'From' à signer.
-		if (!in_array('from', $headers_to_sign) || !isset($headers['from'])) {
-			trigger_error("Cannot sign mail without 'from' in tag 'h' or message headers", E_USER_WARNING);
-			return '';
-		}
-
-		$unsigned_headers = '';
-		foreach ($headers_to_sign as $name) {
-			if (!empty($headers[$name])) {
-				/**
-				 * Si on signe plusieurs en-têtes de même nom, il faut
-				 * les signer dans l’ordre inverse d’occurence.
-				 * @see RFC 4871#5.4 - Determine the Header Fields to Sign
-				 */
-				$header = array_pop($headers[$name]);
-				$unsigned_headers .= $this->canonicalizeHeader($header, $headers_c);
-				$unsigned_headers .= "\r\n";
-			}
-		}
 
 		$unsigned_headers .= $this->canonicalizeHeader($dkim_header, $headers_c);
 
