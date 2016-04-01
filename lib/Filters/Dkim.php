@@ -6,9 +6,9 @@
  * @copyright 2002-2016 Aurélien Maille
  * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
  *
- * @see RFC 4871 - DomainKeys Identified Mail (DKIM) Signatures
+ * @see RFC 6376 - DomainKeys Identified Mail (DKIM) Signatures
  *
- * @link http://dkim.org/specs/rfc4871-dkimbase.html
+ * @link http://dkim.org/
  */
 
 namespace Wamailer\Filters;
@@ -107,7 +107,7 @@ class Dkim
 	 * Tests sur le nom du tag DKIM et sa valeur, puis ajout/modification
 	 * dans le tableau $tags.
 	 *
-	 * @see RFC 4871#3.2 - Tag=Value Lists
+	 * @see RFC 6376#3.2 - Tag=Value Lists
 	 *
 	 * @param string $tagname
 	 * @param string $tagval
@@ -117,7 +117,7 @@ class Dkim
 	public function setTag($tagname, $tagval)
 	{
 		if (!preg_match('#^[a-z][a-z0-9_]*$#i', $tagname)) {
-			trigger_error("Invalid dkim tag name '$tagname', according to RFC 4871.", E_USER_WARNING);
+			trigger_error("Invalid dkim tag name '$tagname', according to RFC 6376.", E_USER_WARNING);
 			return false;
 		}
 
@@ -214,7 +214,7 @@ class Dkim
 		}
 
 		// On récupère les en-têtes à signer.
-		// (RFC 4871#5.4 - Determine the Header Fields to Sign)
+		// (RFC 6376#5.4 - Determine the Header Fields to Sign)
 		$headers_to_sign = explode(':', strtolower($dkim_tags['h']));
 		$headers_to_sign = array_map('trim', $headers_to_sign);
 
@@ -299,7 +299,7 @@ class Dkim
 	 * Seul le format 'relaxed' apporte des changements dans le cas des
 	 * en-têtes.
 	 *
-	 * @see RFC 4871#3.4 - Canonicalization
+	 * @see RFC 6376#3.4 - Canonicalization
 	 *
 	 * @param string $header
 	 * @param string $canonicalization
@@ -324,7 +324,7 @@ class Dkim
 	/**
 	 * Transformation du message dans le format canonique spécifié.
 	 *
-	 * @see RFC 4871#3.4 - Canonicalization
+	 * @see RFC 6376#3.4 - Canonicalization
 	 *
 	 * @param string $body
 	 * @param string $canonicalization
@@ -402,7 +402,7 @@ class Dkim
 	/**
 	 * Encodage "Quoted Printable" à la sauce DKIM.
 	 *
-	 * @see RFC 4871#2.6 - DKIM-Quoted-Printable
+	 * @see RFC 6376#2.11 - DKIM-Quoted-Printable
 	 *
 	 * @param string $str
 	 * @param string $charlist Caractères additionnels à encoder
