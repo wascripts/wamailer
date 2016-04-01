@@ -334,7 +334,7 @@ class Dkim
 	 */
 	protected function canonicalizeBody($body, $canonicalization = 'simple', &$len = -1)
 	{
-		$body = rtrim($body, "\r\n")."\r\n";
+		$body = rtrim($body, "\r\n");
 
 		if ($canonicalization == 'relaxed') {
 			$body = explode("\r\n", $body);
@@ -344,6 +344,13 @@ class Dkim
 			}
 
 			$body = implode("\r\n", $body);
+
+			if ($body != '') {
+				$body .= "\r\n";
+			}
+		}
+		else {
+			$body .= "\r\n";
 		}
 
 		// $len à true est un cas de figure spécial où on veut forcer
