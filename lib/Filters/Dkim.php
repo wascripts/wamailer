@@ -258,14 +258,26 @@ class Dkim
 
 		// Canonicalisation et hashage du corps du mail avec les
 		// paramètres spécifiés
-		$body = $this->canonicalizeBody($body, $body_c, $dkim_tags['l']);
+		$body = $this->canonicalizeBody($body, $body_c);
+		$body_len = strlen($body);
+
+		// Le tag 'l' à true est un cas de figure spécial où on veut forcer
+		// sa présence dans l’en-tête DKIM.
+		if ($dkim_tags['l'] === true) {
+			$dkim_tags['l'] = $body_len;
+		}
+		else if ($dkim_tags['l'] >= 0 && $dkim_tags['l'] <= $body_len) {
+			if ($dkim_tags['l'] < $body_len) {
+				$body = substr($body, 0, $dkim_tags['l']);
+			}
+		}
+		else {
+			unset($dkim_tags['l']);
+		}
+
 		$body = base64_encode(hash($hash_algo, $body, true));
 		$body = rtrim(chunk_split($body, 74, "\r\n\t"));
 		$dkim_tags['bh'] = $body;
-
-		if ($dkim_tags['l'] < 0) {
-			unset($dkim_tags['l']);
-		}
 
 		// création de l’en-tête DKIM-Signature
 		$dkim_header = 'DKIM-Signature: ';
@@ -328,11 +340,10 @@ class Dkim
 	 *
 	 * @param string $body
 	 * @param string $canonicalization
-	 * @param mixed  $len
 	 *
 	 * @return string
 	 */
-	protected function canonicalizeBody($body, $canonicalization = 'simple', &$len = -1)
+	protected function canonicalizeBody($body, $canonicalization = 'simple')
 	{
 		$body = rtrim($body, "\r\n");
 
@@ -351,21 +362,6 @@ class Dkim
 		}
 		else {
 			$body .= "\r\n";
-		}
-
-		// $len à true est un cas de figure spécial où on veut forcer
-		// la présence du tag 'l'.
-		$body_len = strlen($body);
-		if ($len === true) {
-			$len = $body_len;
-		}
-		else if ($len >= 0 && $len <= $body_len) {
-			if ($len < $body_len) {
-				$body = substr($body, 0, $len);
-			}
-		}
-		else {
-			$len = -1;
 		}
 
 		return $body;
