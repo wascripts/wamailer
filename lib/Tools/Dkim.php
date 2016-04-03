@@ -42,7 +42,6 @@ class Dkim
 		'v' => 1,
 		'a' => 'rsa-sha256',
 		'c' => 'relaxed',
-		'q' => 'dns/txt',
 		'd' => null,
 		's' => null,
 		'h' => 'from:to:subject',
@@ -128,6 +127,11 @@ class Dkim
 		switch ($tagname) {
 			case 'v':
 			case 'z':
+			case 'q':
+				// q n’est pas configurable car il n’y a qu’une valeur possible,
+				// 'dns/txt'. Des tests ont montré que d’autres valeurs que
+				// celle-ci, par ailleurs valides au regard de la norme (ex:
+				// 'dns/txt:ma/requ=C3=AAte'), rendaient la signature non valide.
 				trigger_error("The value for dkim tag '$tagname' is not settable.", E_USER_NOTICE);
 				$tagval = null;
 				break;
