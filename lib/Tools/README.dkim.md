@@ -2,13 +2,10 @@
 À propos de Dkim
 =================
 
-L'API et les noms des options sont désormais stables, mais l'espace de noms
-de la classe peut être amené à changer à l'avenir, d'ici à ce que Wamailer 4
-soit marqué comme stable.
+L'API et les noms des options sont désormais stables.
 
 Not stable/bugs:
 
- * namespace
  * Need to transform LF into CRLF before calling `Dkim::sign()`
  * Errors handling : `Dkim::sign()` may throws exception in future (not sure)
 
@@ -16,7 +13,7 @@ Not stable/bugs:
 Standalone example
 -------------------
 
-    require 'lib/Filters/Dkim.php';
+    require 'lib/Tools/Dkim.php';
 
     $opts['domain']   = 'mydomain.tld';
     $opts['selector'] = 'selector';
@@ -38,7 +35,7 @@ Standalone example
         $$varname = preg_replace('#(?<!\r)\n#', "\r\n", $$varname);
     }
 
-    $dkim = new \Wamailer\Filters\Dkim($opts);
+    $dkim = new \Wamailer\Tools\Dkim($opts);
     $dkim_header = $dkim->sign($headers, $body, $to, $subject);
 
     $headers = $dkim_header . $headers;

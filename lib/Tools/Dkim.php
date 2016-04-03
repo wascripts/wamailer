@@ -11,7 +11,7 @@
  * @link http://dkim.org/
  */
 
-namespace Wamailer\Filters;
+namespace Wamailer\Tools;
 
 class Dkim
 {
