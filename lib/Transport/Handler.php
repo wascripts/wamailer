@@ -110,6 +110,9 @@ class Handler extends Transport
 			));
 		}
 
+		// Préparation des en-têtes et du message
+		$email  = $this->prepareMessage($email);
+
 		$params = $this->opts['params'];
 		array_unshift($params, $email);
 

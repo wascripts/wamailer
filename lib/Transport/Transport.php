@@ -12,6 +12,7 @@ namespace Wamailer\Transport;
 use Exception;
 use Wamailer\Mailer;
 use Wamailer\Email;
+use Wamailer\Tools\Dkim;
 
 abstract class Transport implements TransportInterface
 {
@@ -21,6 +22,12 @@ abstract class Transport implements TransportInterface
 	 * @var array
 	 */
 	protected $opts = array();
+
+	/**
+	 * @var Dkim
+	 * @status unstable
+	 */
+	protected $dkim = null;
 
 	/**
 	 * @param array $opts
@@ -89,6 +96,18 @@ abstract class Transport implements TransportInterface
 		 * @see RFC 5321#4.4 - Trace Information
 		 */
 		$email->headers->remove('Return-Path');
+
+		if (!empty($this->opts['dkim'])) {
+			if (!$this->dkim) {
+				$this->dkim = new Dkim($this->opts['dkim']);
+			}
+
+			list($headers, $message) = explode("\r\n\r\n", $email->__toString(), 2);
+
+			$dkim_header = $this->dkim->sign($headers, $message);
+			list($hdr_name, $hdr_value) = explode(':', $dkim_header, 2);
+			$email->headers->add($hdr_name, $hdr_value);
+		}
 
 		return $email;
 	}

@@ -52,6 +52,11 @@ abstract class Mailer
 	private static $transport;
 
 	/**
+	 * @var array
+	 */
+	private static $opts = array();
+
+	/**
 	 * Vérifie la validité syntaxique d'un email.
 	 * TODO: Amenée à être déplacée dans une autre classe.
 	 *
@@ -131,10 +136,22 @@ abstract class Mailer
 			));
 		}
 
+		$opts = array_replace_recursive(self::$opts, $opts);
 		$transport->options($opts);
 		self::$transport = $transport;
 
 		return $transport;
+	}
+
+	/**
+	 * @param array $opts
+	 * @status unstable
+	 */
+	public function options(array $opts)
+	{
+		self::$opts = array_replace_recursive(self::$opts, $opts);
+
+		return self::$opts;
 	}
 
 	/**
