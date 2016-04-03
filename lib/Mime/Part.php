@@ -115,10 +115,6 @@ class Part
 	 */
 	public function __toString()
 	{
-		if ($this->headers->get('Content-Type') == null) {
-			$this->headers->set('Content-Type', 'application/octet-stream');
-		}
-
 		if ($encoding = $this->headers->get('Content-Transfer-Encoding')) {
 			$encoding = strtolower($encoding->value);
 		}
