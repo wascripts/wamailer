@@ -105,7 +105,7 @@ abstract class Transport implements TransportInterface
 			list($headers, $message) = explode("\r\n\r\n", $email->__toString(), 2);
 
 			$dkim_header = $this->dkim->sign($headers, $message);
-			list($hdr_name, $hdr_value) = explode(':', $dkim_header, 2);
+			list($hdr_name, $hdr_value) = explode(': ', rtrim($dkim_header, "\r\n"), 2);
 			$email->headers->add($hdr_name, $hdr_value);
 		}
 
