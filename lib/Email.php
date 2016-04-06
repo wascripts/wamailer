@@ -94,6 +94,7 @@ class Email
 	public function __construct($charset = null)
 	{
 		$this->headers = new Mime\Headers(array(
+			'DKIM-Signature' => '',
 			'Return-Path' => '',
 			'Date' => '',
 			'From' => '',
