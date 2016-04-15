@@ -152,6 +152,13 @@ class Dkim
 					$tagval = null;
 				}
 				break;
+			case 'h':
+				$hdr_name = '[\x21-\x39\x3B-\x7E]+';
+				if (!preg_match("#^$hdr_name(?:\s*:\s*$hdr_name)*$#", $tagval)) {
+					trigger_error("Incorrect value for dkim tag 'h'. "
+						. "Must be a list of header field names, separated by a colon.", E_USER_WARNING);
+				}
+				break;
 			case 't':
 			case 'x':
 				try {
