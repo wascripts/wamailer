@@ -38,7 +38,7 @@ class Dkim
 	 *
 	 * @var array
 	 */
-	private $tags = array(
+	protected $tags = array(
 		'v' => 1,
 		'a' => 'rsa-sha256',
 		'c' => 'relaxed',
