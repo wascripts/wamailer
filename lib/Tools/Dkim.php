@@ -138,8 +138,8 @@ class Dkim
 			case 'c':
 				foreach (explode('/', $tagval, 2) as $c_val) {
 					if ($c_val != 'relaxed' && $c_val != 'simple') {
-						trigger_error("Incorrect value for dkim tag 'c'."
-							. "Acceptable values are 'relaxed' or 'simple',"
+						trigger_error("Incorrect value for dkim tag 'c'. "
+							. "Acceptable values are 'relaxed' or 'simple', "
 							. "or a combination of both, separated by a slash.", E_USER_WARNING);
 						$tagval = null;
 						break;
