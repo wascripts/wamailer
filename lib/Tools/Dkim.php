@@ -287,18 +287,17 @@ class Dkim
 		}
 
 		$body = base64_encode(hash($hash_algo, $body, true));
-		$body = rtrim(chunk_split($body, 74, "\r\n\t"));
 		$dkim_tags['bh'] = $body;
 
 		// création de l’en-tête DKIM-Signature
 		$dkim_header = 'DKIM-Signature: ';
 		foreach ($dkim_tags as $name => $value) {
-			$dkim_header .= "$name=$value; ";
+			$dkim_header .= $this->splitTag("$name=$value;") . ' ';
 		}
 		$dkim_header  = rtrim(wordwrap($dkim_header, 77, "\r\n\t"));
-		$dkim_header .= "\r\n\tb=";
+		$dkim_header .= "\r\n\t";
 
-		$unsigned_headers .= $this->canonicalizeHeader($dkim_header, $headers_c);
+		$unsigned_headers .= $this->canonicalizeHeader($dkim_header.'b=', $headers_c);
 
 		// Génération de la signature proprement dite par OpenSSL.
 		$result = openssl_sign($unsigned_headers, $signature, $privkey, $hash_algo);
@@ -311,7 +310,7 @@ class Dkim
 		}
 
 		// On ajoute la signature à l’en-tête dkim
-		$dkim_header .= rtrim(chunk_split(base64_encode($signature), 75, "\r\n\t"));
+		$dkim_header .= $this->splitTag('b='.base64_encode($signature));
 		$dkim_header .= "\r\n";
 
 		return $dkim_header;
@@ -376,6 +375,60 @@ class Dkim
 		}
 
 		return $body;
+	}
+
+	/**
+	 * Tronçonne le tag DKIM en respectant les règles de césure applicables.
+	 *
+	 * @param string $tag
+	 *
+	 * @return string
+	 */
+	public function splitTag($tag)
+	{
+		$max_len = 77;// 80 - strlen("\r\n\t")
+		$tagname = strtok($tag, '=');
+
+		if (strlen($tag) <= $max_len) {
+			return $tag;
+		}
+		else if ($tagname == 'b' || $tagname == 'bh') {
+			return rtrim(chunk_split($tag, $max_len, "\r\n\t"));
+		}
+
+		$new_tag = '';
+
+		while ($tag) {
+			$chunk = substr($tag, 0, $max_len);
+
+			if (strlen($tag) > $max_len) {
+				if ($tagname == 'z') {
+					$pos1 = strrpos($chunk, '|');
+					$pos2 = strrpos($chunk, ':');
+
+					// On ne doit pas couper les tokens 'hdr-name'.
+					if ($pos1 !== false && $pos1 > $pos2) {
+						$chunk = substr($chunk, 0, $pos1 + 1);
+					}
+				}
+				else if ($tagname == 'h') {
+					// On ne doit pas couper les tokens 'hdr-name'.
+					if ($tag[$max_len] != ':' && $chunk[$max_len-1] != ':') {
+						$chunk = substr($chunk, 0, strrpos($chunk, ':') + 1);
+					}
+				}
+
+				// On ne doit pas couper les tokens 'hex-octet'.
+				while (strpos(substr($chunk, -2), '=') !== false) {
+					$chunk = substr($chunk, 0, -1);
+				}
+			}
+
+			$new_tag .= $chunk . "\r\n\t";
+			$tag = substr($tag, strlen($chunk));
+		}
+
+		return rtrim($new_tag);
 	}
 
 	/**
