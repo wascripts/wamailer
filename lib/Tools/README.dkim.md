@@ -1,6 +1,6 @@
 
-À propos de Dkim
-=================
+DomainKeys Identified Mail
+===========================
 
 L'API et les noms des options sont désormais stables.
 
@@ -8,6 +8,20 @@ Not stable/bugs:
 
  * Need to transform LF into CRLF before calling `Dkim::sign()`
  * Errors handling : `Dkim::sign()` may throws exception in future (not sure)
+
+
+Fonctionnalités
+----------------
+
+ * Algorithme de hashage configurable (défaut: sha256)
+ * Formats canoniques configurables (défaut: relaxed/simple)
+ * Accepte les clés sous forme de chaîne au format PEM ou de chemin de fichier
+ * Support des clés protégées à l'aide d'un passphrase
+ * Liste des en-têtes à signer configurable
+ * Signature d'en-têtes non existants (protège contre les ajouts à posteriori)
+ * Support du format DKIM Quoted Printable
+ * Support pour l'ajout de tags DKIM additionnels
+ * Support des signatures partielles
 
 
 Standalone example
