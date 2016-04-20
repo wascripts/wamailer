@@ -407,7 +407,7 @@ class Dkim
 					$pos2 = strrpos($chunk, ':');
 
 					// On ne doit pas couper les tokens 'hdr-name'.
-					if ($pos1 !== false && $pos1 > $pos2) {
+					if ($tag[$max_len] != ':' && $pos1 !== false && $pos1 > $pos2) {
 						$chunk = substr($chunk, 0, $pos1 + 1);
 					}
 				}
