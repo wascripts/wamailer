@@ -26,6 +26,8 @@ class Dkim
 		'domain'     => null, // Alias pour le tag DKIM 'd'
 		'selector'   => null, // Alias pour le tag DKIM 's'
 		'debug'      => false,// Pour ajouter le tag DKIM 'z'
+		// Conversion des fins de ligne sur l’argument body de la méthode sign()
+		'fixcrlf'    => true,
 	);
 
 	/**
@@ -206,6 +208,15 @@ class Dkim
 			return '';
 		}
 
+		// On s’assure que tous les arguments sont des chaînes et on
+		// normalise les fins de ligne.
+		foreach (array('headers','body','to','subject') as $varname) {
+			$$varname = (string) $$varname;
+			if ($varname != 'body' || $this->opts['fixcrlf']) {
+				$$varname = $this->convertEndOfLine($$varname);
+			}
+		}
+
 		// Formats canonique
 		$headers_c = $this->tags['c'];
 		$body_c    = 'simple';
@@ -375,6 +386,18 @@ class Dkim
 		}
 
 		return $body;
+	}
+
+	/**
+	 * Conversion des fins de ligne
+	 *
+	 * @param string $str
+	 *
+	 * @return string
+	 */
+	public function convertEndOfLine($str)
+	{
+		return preg_replace('#\r\n?|\n#', "\r\n", $str);
 	}
 
 	/**

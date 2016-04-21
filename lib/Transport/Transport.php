@@ -99,6 +99,8 @@ abstract class Transport implements TransportInterface
 
 		if (!empty($this->opts['dkim'])) {
 			if (!$this->dkim) {
+				// Conversion déjà faite dans \Wamailer\Mime\Part
+				$this->opts['dkim']['fixcrlf'] = false;
 				$this->dkim = new Dkim($this->opts['dkim']);
 			}
 
