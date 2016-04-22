@@ -213,7 +213,7 @@ class Dkim
 		foreach (array('headers','body','to','subject') as $varname) {
 			$$varname = (string) $$varname;
 			if ($varname != 'body' || $this->opts['fixcrlf']) {
-				$$varname = $this->convertEndOfLine($$varname);
+				$$varname = preg_replace('#\r\n?|\n#', "\r\n", $$varname);
 			}
 		}
 
@@ -386,18 +386,6 @@ class Dkim
 		}
 
 		return $body;
-	}
-
-	/**
-	 * Conversion des fins de ligne
-	 *
-	 * @param string $str
-	 *
-	 * @return string
-	 */
-	public function convertEndOfLine($str)
-	{
-		return preg_replace('#\r\n?|\n#', "\r\n", $str);
 	}
 
 	/**
