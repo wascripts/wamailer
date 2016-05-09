@@ -18,6 +18,7 @@ Fonctionnalités
  * Support des clés protégées à l'aide d'un passphrase
  * Liste des en-têtes à signer configurable
  * Signature d'en-têtes non existants (protège contre les ajouts à posteriori)
+ * Signature d'en-têtes à multiples occurences
  * Support du format DKIM Quoted Printable
  * Support pour l'ajout de tags DKIM additionnels
  * Support des signatures partielles
