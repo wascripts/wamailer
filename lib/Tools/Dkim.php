@@ -54,7 +54,7 @@ class Dkim
 	 */
 	public function __construct(array $opts = array())
 	{
-		$this->tags['t'] = time();
+		$this->tags['t'] = null;
 		$this->tags['x'] = -1;
 		$this->tags['l'] = -1;
 
@@ -230,6 +230,10 @@ class Dkim
 
 		// Définition des tags DKIM
 		$dkim_tags = $this->tags;
+
+		if (!$dkim_tags['t']) {
+			$dkim_tags['t'] = time();
+		}
 
 		if ($dkim_tags['x'] <= $dkim_tags['t']) {
 			unset($dkim_tags['x']);
