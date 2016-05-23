@@ -21,7 +21,7 @@ abstract class Transport implements TransportInterface
 	 *
 	 * @var array
 	 */
-	protected $opts = array();
+	protected $opts = [];
 
 	/**
 	 * @var Dkim
@@ -32,7 +32,7 @@ abstract class Transport implements TransportInterface
 	/**
 	 * @param array $opts
 	 */
-	public function __construct(array $opts = array())
+	public function __construct(array $opts = [])
 	{
 		$this->options($opts);
 	}
@@ -44,7 +44,7 @@ abstract class Transport implements TransportInterface
 	 *
 	 * @return array
 	 */
-	public function options(array $opts = array())
+	public function options(array $opts = [])
 	{
 		$this->opts = array_replace_recursive($this->opts, $opts);
 

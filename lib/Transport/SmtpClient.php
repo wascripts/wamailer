@@ -94,7 +94,7 @@ class SmtpClient
 	 *
 	 * @var array
 	 */
-	private $opts       = array(
+	private $opts       = [
 		/**
 		 * Utilisation de la commande STARTTLS pour sécuriser la connexion.
 		 * Ignoré si la connexion est sécurisée en utilisant un des préfixes de
@@ -112,7 +112,7 @@ class SmtpClient
 		 *
 		 * @var array
 		 */
-		'ssl' => array(),
+		'ssl' => [],
 
 		/**
 		 * Utilisés pour la création du contexte de flux avec stream_context_create()
@@ -121,11 +121,11 @@ class SmtpClient
 		 *
 		 * @var array
 		 */
-		'stream_opts'   => array(
-			'ssl' => array(
+		'stream_opts'   => [
+			'ssl' => [
 				'disable_compression' => true, // default value in PHP ≥ 5.6
-			)
-		),
+			]
+		],
 		'stream_params' => null,
 
 		/**
@@ -156,10 +156,10 @@ class SmtpClient
 		 *
 		 * @var string
 		 */
-		'auth' => array(
+		'auth' => [
 			'methods' => ''
-		)
-	);
+		]
+	];
 
 	/**
 	 * Liste des extensions SMTP supportées.
@@ -168,7 +168,7 @@ class SmtpClient
 	 *
 	 * @var array
 	 */
-	private $extensions = array();
+	private $extensions = [];
 
 	/**
 	 * Dernier code de réponse retourné par le serveur (accès en lecture).
@@ -196,7 +196,7 @@ class SmtpClient
 	 *
 	 * @var array
 	 */
-	private $pipeline = array();
+	private $pipeline = [];
 
 	/**
 	 * Indique si une transaction est en cours.
@@ -214,7 +214,7 @@ class SmtpClient
 	 *
 	 * @var array
 	 */
-	private $serverInfos = array(
+	private $serverInfos = [
 		'host'      => '',
 		'port'      => 0,
 		// Annonce de présentation du serveur
@@ -225,12 +225,12 @@ class SmtpClient
 		'trusted'   => false,
 		// Ressource de contexte de flux manipulable avec les fonctions stream_context_*
 		'context'   => null
-	);
+	];
 
 	/**
 	 * @param array $opts
 	 */
-	public function __construct(array $opts = array())
+	public function __construct(array $opts = [])
 	{
 		if (!$this->server) {
 			$this->server = ini_get('SMTP');
@@ -259,10 +259,10 @@ class SmtpClient
 	 *
 	 * @return array
 	 */
-	public function options(array $opts = array())
+	public function options(array $opts = [])
 	{
 		// Configuration alternative
-		foreach (array('localhost','debug','timeout','iotimeout') as $name) {
+		foreach (['localhost','debug','timeout','iotimeout'] as $name) {
 			if (!empty($opts[$name])) {
 				$this->{$name} = $opts[$name];
 				unset($opts[$name]);
@@ -346,7 +346,7 @@ class SmtpClient
 		$this->responseCode = null;
 		$this->responseData = null;
 		$this->lastCommand  = null;
-		$this->pipeline     = array();
+		$this->pipeline     = [];
 
 		if (!$server) {
 			$server = $this->server;
@@ -430,7 +430,7 @@ class SmtpClient
 			$this->startTLS();
 		}
 
-		$infos = array();
+		$infos = [];
 		$infos['host']      = $url['host'];
 		$infos['port']      = $url['port'];
 		$infos['greeting']  = $greeting;
@@ -559,25 +559,25 @@ class SmtpClient
 		}
 
 		if (!is_array($codes)) {
-			$codes = array($codes);
+			$codes = [$codes];
 		}
 
 		if (count($codes) == 0) {
 			throw new Exception("No response code given!");
 		}
 
-		$this->pipeline[] = array('codes' => $codes, 'cmd' => $this->lastCommand);
+		$this->pipeline[] = ['codes' => $codes, 'cmd' => $this->lastCommand];
 
 		if ($this->hasSupport('pipelining') && $this->opts['pipelining'] &&
-			in_array($this->lastCommand, array(
+			in_array($this->lastCommand, [
 				'RSET','MAIL FROM','SEND FROM','SOML FROM','SAML FROM','RCPT TO'
-			))
+			])
 		) {
 			return true;
 		}
 
 		$pipeline = $this->pipeline;
-		$this->pipeline = array();
+		$this->pipeline = [];
 		$result = true;
 
 		for ($i = 0; $i < count($pipeline); $i++) {
@@ -614,7 +614,7 @@ class SmtpClient
 			}
 
 			if ($this->inMailTransaction) {
-				if (in_array($pipeline[$i]['cmd'], array('EHLO','HELO','RSET','QUIT','.'))) {
+				if (in_array($pipeline[$i]['cmd'], ['EHLO','HELO','RSET','QUIT','.'])) {
 					$this->inMailTransaction = false;
 				}
 			}
@@ -673,7 +673,7 @@ class SmtpClient
 		}
 
 		// On récupère la liste des extensions supportées par ce serveur
-		$this->extensions = array();
+		$this->extensions = [];
 		$lines = explode("\r\n", trim($this->responseData));
 
 		foreach ($lines as $line) {
@@ -751,7 +751,7 @@ class SmtpClient
 		}
 
 		$available_methods = explode(' ', $available_methods);
-		$supported_methods = array('CRAM-MD5','PLAIN','LOGIN');
+		$supported_methods = ['CRAM-MD5','PLAIN','LOGIN'];
 
 		if (!empty($this->opts['auth']['methods'])) {
 			$force_methods = explode(' ', $this->opts['auth']['methods']);
@@ -848,7 +848,7 @@ class SmtpClient
 		$params = (!empty($params)) ? ' ' . $params : '';
 		$this->put(sprintf('RCPT TO:<%s>%s', $email, $params));
 
-		return $this->checkResponse(array(250, 251));
+		return $this->checkResponse([250, 251]);
 	}
 
 	/**
@@ -951,7 +951,7 @@ class SmtpClient
 		//
 		$this->put(sprintf('VRFY %s', $str));
 
-		return $this->checkResponse(array(250, 251, 252));
+		return $this->checkResponse([250, 251, 252]);
 	}
 
 	/**
@@ -973,7 +973,7 @@ class SmtpClient
 			$this->socket = null;
 		}
 
-		$infos = array();
+		$infos = [];
 		$infos['host']      = '';
 		$infos['port']      = 0;
 		$infos['greeting']  = '';

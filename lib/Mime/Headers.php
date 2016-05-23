@@ -30,7 +30,7 @@ class Headers implements \Iterator
 	 *
 	 * @var array
 	 */
-	private $headers = array();
+	private $headers = [];
 
 	/**
 	 * Utilisé pour permettre l’itération dans la liste des en-têtes (interface Iterator).
@@ -82,7 +82,7 @@ class Headers implements \Iterator
 
 		if ($this->get($name) != null) {
 			if (!is_array($this->headers[$name])) {
-				$this->headers[$name] = array($this->headers[$name]);
+				$this->headers[$name] = [$this->headers[$name]];
 			}
 
 			$this->headers[$name][] = $header;
@@ -188,7 +188,7 @@ class Headers implements \Iterator
 		$str = '';
 		foreach ($this->headers as $headers) {
 			if (!is_array($headers)) {
-				$headers = array($headers);
+				$headers = [$headers];
 			}
 
 			foreach ($headers as $header) {

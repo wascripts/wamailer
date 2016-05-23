@@ -20,7 +20,7 @@ class Dkim
 	 *
 	 * @var array
 	 */
-	protected $opts = array(
+	protected $opts = [
 		'privkey'    => null,
 		'passphrase' => null,
 		'domain'     => null, // Alias pour le tag DKIM 'd'
@@ -28,7 +28,7 @@ class Dkim
 		'debug'      => false,// Pour ajouter le tag DKIM 'z'
 		// Conversion des fins de ligne sur l’argument body de la méthode sign()
 		'fixcrlf'    => true,
-	);
+	];
 
 	/**
 	 * Paramètres DKIM par défaut.
@@ -40,19 +40,19 @@ class Dkim
 	 *
 	 * @var array
 	 */
-	protected $tags = array(
+	protected $tags = [
 		'v' => 1,
 		'a' => 'rsa-sha256',
 		'c' => 'relaxed',
 		'd' => null,
 		's' => null,
 		'h' => 'from:to:subject',
-	);
+	];
 
 	/**
 	 * @param array $opts
 	 */
-	public function __construct(array $opts = array())
+	public function __construct(array $opts = [])
 	{
 		$this->tags['t'] = null;
 		$this->tags['x'] = -1;
@@ -77,7 +77,7 @@ class Dkim
 	 *
 	 * @return array
 	 */
-	public function options(array $opts = array())
+	public function options(array $opts = [])
 	{
 		if (isset($opts['domain'])) {
 			$opts['tags']['d'] = $opts['domain'];
@@ -210,7 +210,7 @@ class Dkim
 
 		// On s’assure que tous les arguments sont des chaînes et on
 		// normalise les fins de ligne.
-		foreach (array('headers','body','to','subject') as $varname) {
+		foreach (['headers','body','to','subject'] as $varname) {
 			$$varname = (string) $$varname;
 			if ($varname != 'body' || $this->opts['fixcrlf']) {
 				$$varname = preg_replace('#\r\n?|\n#', "\r\n", $$varname);

@@ -19,7 +19,7 @@ class Sendmail extends Transport
 	 *
 	 * @var array
 	 */
-	protected $opts = array(
+	protected $opts = [
 		/**
 		* Commande de lancement de sendmail
 		* L’option '-t' indique au programme de récupérer les adresses des
@@ -31,7 +31,7 @@ class Sendmail extends Transport
 		* @var string
 		*/
 		'command' => '/usr/sbin/sendmail -t -i'
-	);
+	];
 
 	/**
 	 * Traitement/envoi d’un email.

@@ -44,7 +44,7 @@ class Header
 	 *
 	 * @var array
 	 */
-	private $params = array();
+	private $params = [];
 
 	/**
 	 * Active/Désactive le pliage des entêtes
@@ -233,9 +233,9 @@ class Header
 		$is_utf8  = (strcasecmp($charset, 'UTF-8') == 0);
 		$output   = '';
 
-		$utf8test = array(
+		$utf8test = [
 			0x80 => 0, 0xE0 => 0xC0, 0xF0 => 0xE0, 0xF8 => 0xF0, 0xFC => 0xF8, 0xFE => 0xFC
-		);
+		];
 
 		/**
 		 * Si on travaille en Quoted Printable, on fait l’encodage *avant* de
@@ -250,7 +250,7 @@ class Header
 				function (&$val, $key) { $val = sprintf('=%02X', ord($key)); }
 			);
 			// Le signe égal doit être remplacé en premier !
-			$replace_pairs = array_merge(array('=' => '=3D', ' ' => '_'), $replace_pairs);
+			$replace_pairs = array_merge(['=' => '=3D', ' ' => '_'], $replace_pairs);
 
 			$value = strtr($value, $replace_pairs);
 		}

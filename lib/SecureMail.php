@@ -42,7 +42,7 @@ class SecureMail extends Email
 	private $_encrypt   = false;
 	private $secretkey  = null;
 	private $passphrase = null;
-	private $recipients = array();
+	private $recipients = [];
 	private $encryption = null;
 	private $password   = null;
 
@@ -79,7 +79,7 @@ class SecureMail extends Email
 	 */
 	public function encrypt($data, $encryption = null)
 	{
-		if (!in_array($encryption, array(self::A_ENCRYPTION, self::S_ENCRYPTION))) {
+		if (!in_array($encryption, [self::A_ENCRYPTION, self::S_ENCRYPTION])) {
 			$encryption = self::A_ENCRYPTION;
 		}
 		else {
@@ -88,7 +88,7 @@ class SecureMail extends Email
 
 		if ($encryption == self::A_ENCRYPTION) {
 			if (!is_array($data)) {
-				$data = array($data);
+				$data = [$data];
 			}
 
 			$this->_encrypt   = true;
@@ -106,7 +106,7 @@ class SecureMail extends Email
 		$this->_encrypt   = false;
 		$this->secretkey  = null;
 		$this->passphrase = null;
-		$this->recipients = array();
+		$this->recipients = [];
 		$this->encryption = null;
 		$this->password   = null;
 	}

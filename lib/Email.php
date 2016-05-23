@@ -76,7 +76,7 @@ class Email
 	 *
 	 * @var array
 	 */
-	protected $attachParts = array();
+	protected $attachParts = [];
 
 	/**
 	 * @var string
@@ -93,7 +93,7 @@ class Email
 	 */
 	public function __construct($charset = null)
 	{
-		$this->headers = new Mime\Headers(array(
+		$this->headers = new Mime\Headers([
 			'DKIM-Signature' => '',
 			'Return-Path' => '',
 			'Date' => '',
@@ -106,7 +106,7 @@ class Email
 			'Subject' => '',
 			'Message-ID' => '',
 			'MIME-Version' => ''
-		));
+		]);
 
 		if ($charset) {
 			$this->charset = $charset;
@@ -241,7 +241,7 @@ class Email
 	{
 		$result = false;
 
-		foreach (array('to', 'cc', 'bcc') as $name) {
+		foreach (['to', 'cc', 'bcc'] as $name) {
 			$header = $this->headers->get($name);
 
 			if (!is_null($header) && $header->value != '') {
@@ -324,7 +324,7 @@ class Email
 	{
 		$sender = '';
 
-		foreach (array('Return-Path','Sender','From') as $name) {
+		foreach (['Return-Path','Sender','From'] as $name) {
 			if ($header = $this->headers->get($name)) {
 				$list = Mailer::clearAddressList($header->value);
 
@@ -494,7 +494,7 @@ class Email
 	 */
 	public function removeAttachments()
 	{
-		$this->attachParts = array();
+		$this->attachParts = [];
 		$this->message_txt = '';
 	}
 
@@ -530,7 +530,7 @@ class Email
 				$rootPart->headers->set('Content-Type', 'multipart/alternative');
 			}
 
-			$embedParts = array();
+			$embedParts = [];
 			foreach ($attachParts as &$attach) {
 				if ($attach->headers->get('Content-ID') == null) {
 					$name = $attach->headers->get('Content-Type')->param('name');

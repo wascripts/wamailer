@@ -39,12 +39,12 @@ abstract class Mailer
 	 *
 	 * @var array ['name' => 'classname']
 	 */
-	private static $transports = array(
+	private static $transports = [
 		'mail'     => 'Mail',
 		'smtp'     => 'Smtp',
 		'handler'  => 'Handler',
 		'sendmail' => 'Sendmail',
-	);
+	];
 
 	/**
 	 * @var TransportInterface
@@ -54,7 +54,7 @@ abstract class Mailer
 	/**
 	 * @var array
 	 */
-	private static $opts = array();
+	private static $opts = [];
 
 	/**
 	 * Vérifie la validité syntaxique d'un email.
@@ -105,7 +105,7 @@ abstract class Mailer
 	 * @throws Exception
 	 * @return TransportInterface
 	 */
-	public static function setTransport($transport, array $opts = array())
+	public static function setTransport($transport, array $opts = [])
 	{
 		if (is_string($transport)) {
 			if (isset(self::$transports[$transport])) {

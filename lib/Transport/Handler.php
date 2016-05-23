@@ -29,14 +29,14 @@ class Handler extends Transport
 	 *
 	 * @var array
 	 */
-	protected $opts = array(
+	protected $opts = [
 		/**
 		 * Tableau des paramètres additionnels transmis lors de l’appel
 		 * au gestionnaire d’envoi préalablement enregistré.
 		 *
 		 * @var array
 		 */
-		'params' => array(),
+		'params' => [],
 
 		/**
 		 * Traité directement via la méthode self::setHandler()
@@ -44,7 +44,7 @@ class Handler extends Transport
 		 * @var callable
 		 */
 		'handler' => ''
-	);
+	];
 
 	/**
 	 * Définition des options supplémentaires pour ce transport.
@@ -55,7 +55,7 @@ class Handler extends Transport
 	 * @throws Exception
 	 * @return array
 	 */
-	public function options(array $opts = array())
+	public function options(array $opts = [])
 	{
 		// array_key_exists() car handler peut valoir null
 		if (array_key_exists('handler', $opts)) {

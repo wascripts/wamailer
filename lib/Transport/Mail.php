@@ -24,7 +24,7 @@ class Mail extends Transport
 	 *
 	 * @var array
 	 */
-	protected $opts = array(
+	protected $opts = [
 		/**
 		 * Correspond au 5e argument de la fonction mail().
 		 * Si l’option -f n’est pas présente, elle sera ajoutée automatiquement.
@@ -45,7 +45,7 @@ class Mail extends Transport
 		 * @var boolean
 		 */
 		'php_use_smtp' => null
-	);
+	];
 
 	/**
 	 * Stocke le message d’erreur émis par la fonction mail().
@@ -143,7 +143,7 @@ class Mail extends Transport
 			//
 			ini_set('sendmail_from', $sender);
 		}
-		else if (!ini_get('safe_mode')) {
+		else {
 			$params = ' '.$this->opts['additional_params'];
 
 			if (!strpos($sendmail_path . $params, ' -f')) {
@@ -151,7 +151,7 @@ class Mail extends Transport
 			}
 		}
 
-		set_error_handler(array($this, 'errorHandler'));
+		set_error_handler([$this, 'errorHandler']);
 		$result = mail($recipients, $subject, $message, $headers, $params);
 		restore_error_handler();
 

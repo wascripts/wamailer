@@ -24,7 +24,7 @@ class Smtp extends Transport
 	 *
 	 * @var array
 	 */
-	protected $opts = array(
+	protected $opts = [
 		/**
 		 * Serveur SMTP à contacter.
 		 * Format : 'hostname', 'hostname:port' ou encore 'tls://hostname:port'
@@ -45,10 +45,10 @@ class Smtp extends Transport
 		 *
 		 * @var array
 		 */
-		'auth' => array(
+		'auth' => [
 			'username'  => '',
 			'secretkey' => '' // 'password' est également accepté comme alias.
-		),
+		],
 
 		/**
 		 * Permet de maintenir la connexion ouverte et donc de réaliser
@@ -59,7 +59,7 @@ class Smtp extends Transport
 		 * @var boolean
 		 */
 		'keepalive' => false
-	);
+	];
 
 	/**
 	 * Stockage de notre instance de la classe SmtpClient
@@ -95,8 +95,8 @@ class Smtp extends Transport
 		// au serveur SMTP.
 		// On récupère les adresses des entêtes To, Cc et Bcc.
 		//
-		$recipients = array();
-		foreach (array('to', 'cc', 'bcc') as $name) {
+		$recipients = [];
+		foreach (['to', 'cc', 'bcc'] as $name) {
 			$header = $email->headers->get($name);
 
 			if (!is_null($header)) {

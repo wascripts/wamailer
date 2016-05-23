@@ -14,7 +14,7 @@ interface TransportInterface
 	/**
 	 * @param array $opts
 	 */
-	public function __construct(array $opts = array());
+	public function __construct(array $opts = []);
 
 	/**
 	 * Définition des options supplémentaires pour ce transport.
@@ -23,7 +23,7 @@ interface TransportInterface
 	 *
 	 * @return array
 	 */
-	public function options(array $opts = array());
+	public function options(array $opts = []);
 
 	/**
 	 * Traitement/envoi d’un email.

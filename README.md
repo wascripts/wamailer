@@ -9,7 +9,7 @@ Qu’est-ce que Wamailer ? Une librairie composée de plusieurs classes écrites
 PHP et permettant de générer et envoyer des emails.
 Wamailer respecte du mieux possible les différentes RFC décrivant la syntaxe des
 emails.
-Wamailer requiert PHP ≥ 5.3.3 et est distribué sous licence LGPL.
+Wamailer requiert PHP ≥ 5.4.0 et est distribué sous licence LGPL.
 
 
 Fonctionnalités

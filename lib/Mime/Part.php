@@ -45,7 +45,7 @@ class Part
 	 *
 	 * @var mixed
 	 */
-	private $subparts = array();
+	private $subparts = [];
 
 	/**
 	 * Frontière de séparation entre les différentes sous-parties
@@ -131,7 +131,7 @@ class Part
 			 *
 			 * @see RFC 2045#6.4 - Interpretation and Use
 			 */
-			if (!in_array($encoding, array('7bit', '8bit', 'binary'))) {
+			if (!in_array($encoding, ['7bit', '8bit', 'binary'])) {
 				$this->headers->remove('Content-Transfer-Encoding');
 			}
 
@@ -158,7 +158,7 @@ class Part
 			 * quoted_printable_encode() code également les caractères <CR>
 			 * et <LF> s’ils ne font pas partie d’une paire <CR><LF>.
 			 */
-			if (in_array($encoding, array('7bit', '8bit', 'quoted-printable'))) {
+			if (in_array($encoding, ['7bit', '8bit', 'quoted-printable'])) {
 				$body = preg_replace("/\r\n?|\n/", "\r\n", $body);
 			}
 
@@ -171,7 +171,7 @@ class Part
 			 *
 			 * @see RFC 5322#2.1.1 - Line Length Limits
 			 */
-			if (in_array($encoding, array('7bit', '8bit', 'binary'))) {
+			if (in_array($encoding, ['7bit', '8bit', 'binary'])) {
 				$oldbody = $body;
 
 				if ($encoding != 'binary' && $this->wraptext) {
