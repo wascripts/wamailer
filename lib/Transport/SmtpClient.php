@@ -1,10 +1,10 @@
 <?php
 /**
  * @package   Wamailer
- * @author    Bobe <wascripts@phpcodeur.net>
- * @link      http://phpcodeur.net/wascripts/wamailer/
- * @copyright 2002-2016 Aurélien Maille
- * @license   http://www.gnu.org/copyleft/lesser.html  GNU Lesser General Public License
+ * @author    Bobe <wascripts@webnaute.net>
+ * @link      http://dev.webnaute.net/wamailer/
+ * @copyright 2002-2021 Aurélien Maille
+ * @license   https://www.gnu.org/licenses/lgpl.html  GNU Lesser General Public License
  *
  * @see RFC 5321 - Simple Mail Transfer Protocol
  * @see RFC 4954 - SMTP Service Extension for Authentication

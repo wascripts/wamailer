@@ -94,14 +94,14 @@ Licence
 
 Wamailer est distribué sous licence LGPL. Pour plus d’informations,
 consultez le fichier COPYING livré avec Wamailer, ou rendez-vous à l’URL
-suivante : <http://www.gnu.org/copyleft/lesser.html>
+suivante : <https://www.gnu.org/licenses/lgpl.html>
 
 
 Auteurs
 ---------
 
  * Développeur
-   * Aurélien Maille <wascripts@phpcodeur.net>
+   * Aurélien Maille <wascripts@webnaute.net>
  * Contributeurs
    * freeDani
    * Loufoque <loufoque@gmail.com>
