@@ -147,7 +147,7 @@ abstract class Mailer
 	 * @param array $opts
 	 * @status unstable
 	 */
-	public function options(array $opts)
+	public static function options(array $opts)
 	{
 		self::$opts = array_replace_recursive(self::$opts, $opts);
 
