@@ -313,8 +313,10 @@ class Header
 
 					reset($utf8test);
 					for ($m = 1; $m <= 6; $m++) {
-						$test = each($utf8test);
-						if (($d & $test[0]) == $test[1]) {
+						$t0 = key($utf8test);
+						$t1 = current($utf8test);
+						next($utf8test);
+						if (($d & $t0) == $t1) {
 							if ($c < ($m*$v)) {
 								$chunk_len -= $c;
 								$chunk = substr($chunk, 0, $chunk_len);

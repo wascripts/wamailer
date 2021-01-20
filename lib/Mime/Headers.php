@@ -167,8 +167,8 @@ class Headers implements \Iterator
 	public function valid()
 	{
 		if ($this->it_ind < $this->it_tot) {
-			$tmp = each($this->headers);
-			$this->it_obj = $tmp['value'];
+			$this->it_obj = current($this->headers);
+			next($this->headers);
 			$ret = true;
 		}
 		else {
