@@ -450,13 +450,13 @@ class Dkim
 	/**
 	 * Teste la disponibilité d’OpenSSL et retourne la clé privée.
 	 *
-	 * @return resource
+	 * @return resource|OpenSSLAsymmetricKey
 	 */
 	protected function getPrivKey()
 	{
 		$privkey =& $this->opts['privkey'];
 
-		if (!is_null($privkey) && !is_resource($privkey)) {
+		if (!is_null($privkey) && !is_resource($privkey) && !($privkey instanceof \OpenSSLAsymmetricKey)) {
 			$privkey = trim($privkey);
 			if (strpos($privkey, '-----BEGIN') === false && strpos($privkey, 'file://') === false) {
 				$privkey = 'file://'.$privkey;
@@ -474,7 +474,7 @@ class Dkim
 
 			$this->opts['passphrase'] = null;
 
-			if (!is_resource($privkey)) {
+			if (!is_resource($privkey) && !($privkey instanceof \OpenSSLAsymmetricKey)) {
 				$privkey = null;
 			}
 		}
