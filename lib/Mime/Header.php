@@ -91,7 +91,7 @@ class Header
 	 * @throws Exception
 	 * @return string
 	 */
-	public function validName($name)
+	public static function validName($name)
 	{
 		if (preg_match('/[^\x21-\x39\x3B-\x7E]/', $name)) {
 			throw new Exception("'$name' is not a valid header name!");
@@ -110,7 +110,7 @@ class Header
 	 *
 	 * @return string
 	 */
-	public function sanitizeValue($value)
+	public static function sanitizeValue($value)
 	{
 		return preg_replace('/\s+/S', ' ', $value);
 	}
@@ -124,7 +124,7 @@ class Header
 	 *
 	 * @return boolean
 	 */
-	public function isToken($str)
+	public static function isToken($str)
 	{
 		/**
 		 * Tout caractère ASCII est accepté à l’exception des caractères de
