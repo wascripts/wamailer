@@ -169,7 +169,7 @@ class SecureMail extends Email
 		//
 		if ($this->_encrypt) {
 			if (!is_null($this->cipher_algo)) {
-				$gpc_cmd .= sprintf(' --cipher-algo %s', escapeshellarg($this->cipher_algo));
+				$gpg_cmd .= sprintf(' --cipher-algo %s', escapeshellarg($this->cipher_algo));
 			}
 
 			if ($this->encryption == self::A_ENCRYPTION) {
