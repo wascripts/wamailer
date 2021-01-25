@@ -166,6 +166,7 @@ abstract class Mailer
 			self::setTransport(key(self::$transports));
 		}
 
+		self::$transport->options(self::$opts);
 		self::$transport->send($email);
 	}
 }
